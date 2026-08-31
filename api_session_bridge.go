@@ -2,15 +2,30 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"net/http"
+	"github.com/juju/persistent-cookiejar"
+	"os"
 
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/proto"
-	"github.com/juju/persistent-cookiejar"
 
 	"github.com/Chouette2100/srapi/v2"
 )
+
+func cookieJarFilename(cookiename string) string {
+	return cookiename + "_cookies"
+}
+
+func isTruthyEnv(value string) bool {
+	switch value {
+	case "1", "true", "TRUE", "yes", "YES", "on", "ON":
+		return true
+	default:
+		return false
+	}
+}
 
 func PrepareAPIClientFromCurrentBrowser(cookiename string, pageURL string) (client *http.Client, jar *cookiejar.Jar, err error) {
 	if srBrowser == nil {
@@ -45,6 +60,25 @@ func PrepareAPIClientFromCurrentBrowser(cookiename string, pageURL string) (clie
 // The API side already knows how to fetch csrf_token from SHOWROOM, so this helper only
 // prepares the shared cookie session. Call srapi.ApiCsrftoken(client) afterwards.
 func PrepareAPIClientFromBrowser(page *rod.Page, cookiename string, pageURL string) (client *http.Client, jar *cookiejar.Jar, err error) {
+	jarFile := cookieJarFilename(cookiename)
+	cleanJar := isTruthyEnv(os.Getenv("SR_CLEAN_JAR"))
+
+	if cleanJar {
+		if removeErr := os.Remove(jarFile); removeErr == nil {
+			log.Printf("API cookie jar removed for clean start: %s\n", jarFile)
+		} else if !os.IsNotExist(removeErr) {
+			return nil, nil, fmt.Errorf("failed to remove cookie jar %s: %w", jarFile, removeErr)
+		}
+	}
+
+	if _, statErr := os.Stat(jarFile); statErr == nil {
+		log.Printf("API cookie jar found and loaded: %s\n", jarFile)
+	} else if os.IsNotExist(statErr) {
+		log.Printf("API cookie jar not found, creating new: %s\n", jarFile)
+	} else {
+		return nil, nil, fmt.Errorf("failed to stat cookie jar %s: %w", jarFile, statErr)
+	}
+
 	client, jar, err = srapi.CreateNewClient(cookiename)
 	if err != nil {
 		return nil, nil, fmt.Errorf("srapi.CreateNewClient: %w", err)
