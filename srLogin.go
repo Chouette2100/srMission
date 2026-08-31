@@ -48,9 +48,6 @@ func applyJapaneseLocale(page *rod.Page) error {
 }
 
 func findBrowserBin() (string, error) {
-	// SR_BROWSER_BIN is optional.
-	// In some environments (e.g. NixOS), explicitly pinning a browser path can behave differently
-	// from auto-detected binaries, so prefer leaving it unset unless you need to force a specific one.
 	if v := os.Getenv("SR_BROWSER_BIN"); v != "" {
 		if p, err := exec.LookPath(v); err == nil {
 			return p, nil
@@ -95,10 +92,6 @@ func ensureBrowser() (err error) {
 		return nil
 	}
 
-	// Browser binary selection policy:
-	// 1) use SR_BROWSER_BIN when explicitly set
-	// 2) otherwise auto-detect common names (chromium/google-chrome)
-	// If startup becomes unstable, first try unsetting SR_BROWSER_BIN.
 	browserBin, err := findBrowserBin()
 	if err != nil {
 		return err

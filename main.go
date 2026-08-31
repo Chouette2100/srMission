@@ -25,9 +25,10 @@ import (
 
 /*
 000000 2026-08-30 テストバージョン（ログインと配信者ページの表示）
+000100 2026-08-31 csrftokenとcookieを取得してAPIと連携する(コメント投稿とミッション達成状況の確認)
 */
 
-const Version = "000000"
+const Version = "000100"
 
 var Db *sql.DB
 var Dbmap *gorp.DbMap
@@ -108,13 +109,14 @@ func main() {
 	var mission, comment string
 	var viewingTime int
 	// 起動時パラメータからeventid, ibreg, ieregを取得する。
-	if len(os.Args) < 4 {
+	if len(os.Args) < 5 {
 		log.Printf("Usage: srAddEvent eventid ibreg iereg\n")
 		return
 	}
 	mission = os.Args[1]
-	viewingTime, _ = strconv.Atoi(os.Args[2])
-	comment = os.Args[3]
+	noofrooms, _ := strconv.Atoi(os.Args[2])
+	viewingTime, _ = strconv.Atoi(os.Args[3])
+	comment = os.Args[4]
 	log.Printf(" mission =[%s], viewingTime=%d, comment=%s\n", mission, viewingTime, comment)
 	// --------------------------------
 
@@ -125,8 +127,23 @@ func main() {
 		return
 	}
 
+	apiClient, apiJar, err := PrepareAPIClientFromCurrentBrowser(envConfig.SrAcct, "https://www.showroom-live.com/")
+	if err != nil {
+		log.Printf("Error: %v\n", err)
+		return
+	}
+	defer apiJar.Save()
+
+	csrfToken, err := FetchAPICSRFToken(apiClient)
+	if err != nil {
+		log.Printf("Error: %v\n", err)
+		return
+	}
+	log.Printf("API session prepared. csrf_token acquired (length=%d)\n", len(csrfToken))
+
+
 	// 視聴の対象となる配信者のURLのリストを取得する
-	rooms, err := collectRooms(mission)
+	rooms, err := collectRooms(mission, noofrooms)
 	if err != nil {
 		log.Printf("Error: %v\n", err)
 		return
@@ -135,7 +152,7 @@ func main() {
 	// TODO: viewingTimeづつ視聴を行う
 	for _, room := range rooms {
 		log.Printf("Room: %+v\n", room)
-		if err = viewRoom(room.URL, viewingTime, ""); err != nil {
+		if err = viewRoom(apiClient, csrfToken, room, viewingTime, comment); err != nil {
 			log.Printf("Error: %v\n", err)
 		}
 	}

@@ -16,12 +16,14 @@
                 "SOPS_AGE_KEY_FILE": "/home/chouette/.config/age/key2.txt",
                 // "SR_WEBGL_MODE": "hardware",
                 // "SR_WEBGL_MODE"="swiftshader",
+                "SR_HEADLESS": "1",
                 "SR_BROWSER_BIN": "/etc/profiles/per-user/chouette/bin/google-chrome-stable",
             },
             "args": [
                 "daily",
-                "40",
-                "nil"
+                "2", // No of Rooms
+                "40", // Viewing Time
+                "39" // Comment
             ]
         }
     ]
