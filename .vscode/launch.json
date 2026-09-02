@@ -15,13 +15,15 @@
             "env": {
                 "SOPS_AGE_KEY_FILE": "/home/chouette/.config/age/key2.txt",
                 // "SR_WEBGL_MODE": "hardware",
-                // "SR_WEBGL_MODE"="swiftshader",
-                "SR_HEADLESS": "1",
+                // "SR_WEBGL_MODE": "swiftshader",
+                // "SR_HEADLESS": "1",
+                "SR_ADREWARD_NO_PROGRESS_WAIT_SEC": "50",
                 "SR_BROWSER_BIN": "/etc/profiles/per-user/chouette/bin/google-chrome-stable",
             },
             "args": [
-                "daily",
-                "2", // No of Rooms
+                "viewreward", // Event ID
+                // "daily",
+                "25", // No of Rooms
                 "40", // Viewing Time
                 "39" // Comment
             ]

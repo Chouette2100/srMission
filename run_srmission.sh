@@ -19,8 +19,9 @@ Environment defaults:
   SOPS_AGE_KEY_FILE=/home/chouette/.config/age/key2.txt
   SR_HEADLESS=1
   SR_BROWSER_BIN=/etc/profiles/per-user/chouette/bin/google-chrome-stable
-  SR_WEBGL_MODE=off
+  SR_WEBGL_MODE=on
 	SR_CLEAN_JAR=0
+	SR_ADREWARD_NO_PROGRESS_WAIT_SEC=50
 EOF
 }
 
@@ -71,14 +72,16 @@ fi
 : "${SOPS_AGE_KEY_FILE:=/home/chouette/.config/age/key2.txt}"
 : "${SR_HEADLESS:=1}"
 : "${SR_BROWSER_BIN:=/etc/profiles/per-user/chouette/bin/google-chrome-stable}"
-: "${SR_WEBGL_MODE:=off}"
+: "${SR_WEBGL_MODE:=on}"
 : "${SR_CLEAN_JAR:=0}"
+: "${SR_ADREWARD_NO_PROGRESS_WAIT_SEC:=30}"
 
 export SOPS_AGE_KEY_FILE
 export SR_HEADLESS
 export SR_BROWSER_BIN
 export SR_WEBGL_MODE
 export SR_CLEAN_JAR
+export SR_ADREWARD_NO_PROGRESS_WAIT_SEC
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 cd "$SCRIPT_DIR"

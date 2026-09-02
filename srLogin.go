@@ -114,7 +114,7 @@ func ensureBrowser() (err error) {
 		Bin(browserBin).
 		Env(launcherEnv...).
 		Set(flags.Flag("lang"), "ja-JP").
-		Set(flags.Flag("window-size"), "1360,1020").
+		Set(flags.Flag("window-size"), "1360,900").
 		Set(flags.Flag("force-device-scale-factor"), "1")
 
 	// WebGL tuning is opt-in. Some combinations can crash on specific host drivers.

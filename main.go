@@ -26,9 +26,10 @@ import (
 /*
 000000 2026-08-30 テストバージョン（ログインと配信者ページの表示）
 000100 2026-08-31 csrftokenとcookieを取得してAPIと連携する(コメント投稿とミッション達成状況の確認)
+000200 2026-09-01 広告視聴のためのviewReawrd()を追加する(まだ意図したとおりに動作しない)
 */
 
-const Version = "000100"
+const Version = "000200"
 
 var Db *sql.DB
 var Dbmap *gorp.DbMap
@@ -63,6 +64,7 @@ func main() {
 
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile)
 	log.Printf("Version=%s Start\n", Version)
+	installSignalTracebackHandlers()
 	// --------------------------------
 
 	// DB接続
@@ -141,20 +143,30 @@ func main() {
 	}
 	log.Printf("API session prepared. csrf_token acquired (length=%d)\n", len(csrfToken))
 
-
-	// 視聴の対象となる配信者のURLのリストを取得する
-	rooms, err := collectRooms(mission, noofrooms)
-	if err != nil {
-		log.Printf("Error: %v\n", err)
-		return
-	}
-
-	// TODO: viewingTimeづつ視聴を行う
-	for _, room := range rooms {
-		log.Printf("Room: %+v\n", room)
-		if err = viewRoom(apiClient, csrfToken, room, viewingTime, comment); err != nil {
+	switch mission {
+	case "daily":
+		log.Printf("Mission: daily\n")
+		// 視聴の対象となる配信者のURLのリストを取得する
+		rooms, err := collectRooms(mission, noofrooms)
+		if err != nil {
+			log.Printf("Error: %v\n", err)
+			return
+		}
+		// TODO: viewingTimeづつ視聴を行う
+		for _, room := range rooms {
+			log.Printf("Room: %+v\n", room)
+			if err = viewRoom(apiClient, csrfToken, room, viewingTime, comment); err != nil {
+				log.Printf("Error: %v\n", err)
+			}
+		}
+	case "viewreward":
+		log.Printf("Mission: viewreward\n")
+		if err = viewReward(apiClient, csrfToken); err != nil {
 			log.Printf("Error: %v\n", err)
 		}
+	default:
+		log.Printf("Unknown mission: %s\n", mission)
+		return
 	}
 
 	// --------------------------------
