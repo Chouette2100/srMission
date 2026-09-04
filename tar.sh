@@ -5,7 +5,4 @@ tar zcvf srMission_$filename.tar.gz \
 Titan48272812_cookies \
 srMission \
 run_srmission.sh \
-*.go \
-go.mod \
-go.sum \
 tar.sh

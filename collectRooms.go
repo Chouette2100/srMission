@@ -25,11 +25,36 @@ func collectRooms(
 	rooms []Room,
 	err error,
 ) {
+	type Genres struct{ IDs []int }
+	var genreList = map[string]Genres{
+		"daily": {IDs: []int{
+			// 0, // 人気
+			112, // ミュージック
+			102, // アイドル
+			103, // タレント
+			104, // 声優
+			105, // 芸人
+			107, // バーチャル
+			108, // モデル
+			109, // 俳優
+			110, // アナウンサー
+			112, // クリエイター
+			200, // ライバー
+			// 704, // メンズ
+			// 703, // カラオケ
+		}},
+		"newcommer": {IDs: []int{
+			762, // New1day
+			763, // New7day
+			764, // New30day
+			// 758, // 注目の新人
+		}},
+		// 「きっかけ配信」はジャンルではない！
+		"discovery" : {IDs: []int{}},
+	}
+	genre := genreList[mission]
 	var lives []srapi.Lives2
-	lives, err = srapi.GetLiveOnlives3(http.DefaultClient, []int{
-		102, 103, 104, 105, 107, 108, 109, 110, 112, 113,
-		200,
-	})
+	lives, err = srapi.GetLiveOnlives3(http.DefaultClient, genre.IDs)
 
 	for _, live := range lives {
 		room := Room{

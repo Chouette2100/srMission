@@ -2,5 +2,7 @@ srMission
 srMission_*.txt
 *_cookies
 *.gz
+*.swp
+*.html
 Doc/login/
 Doc/adreward/

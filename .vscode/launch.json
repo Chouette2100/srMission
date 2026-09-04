@@ -16,16 +16,21 @@
                 "SOPS_AGE_KEY_FILE": "/home/chouette/.config/age/key2.txt",
                 // "SR_WEBGL_MODE": "hardware",
                 // "SR_WEBGL_MODE": "swiftshader",
-                // "SR_HEADLESS": "1",
+                "SR_HEADLESS": "0",
                 "SR_ADREWARD_NO_PROGRESS_WAIT_SEC": "50",
+                "SR_ADREWARD_DEBUG_HTML": "1",
                 "SR_BROWSER_BIN": "/etc/profiles/per-user/chouette/bin/google-chrome-stable",
             },
             "args": [
-                "viewreward", // Event ID
                 // "daily",
-                "25", // No of Rooms
-                "40", // Viewing Time
-                "39" // Comment
+                // "newcommer",
+                // "10", // No of Rooms
+                // "40", // Viewing Time
+                // "39", // Comment
+                "viewreward", // Event ID
+                "1",
+                "1",
+                "nil",
             ]
         }
     ]

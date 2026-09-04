@@ -26,10 +26,11 @@ import (
 /*
 000000 2026-08-30 テストバージョン（ログインと配信者ページの表示）
 000100 2026-08-31 csrftokenとcookieを取得してAPIと連携する(コメント投稿とミッション達成状況の確認)
-000200 2026-09-01 広告視聴のためのviewReawrd()を追加する(まだ意図したとおりに動作しない)
+000200 2026-09-02 広告視聴のためのviewReawrd()を追加する(まだ意図したとおりに動作しない)
+000300 2026-09-05 000200/viewReward.goのレビュー、修正を行う（iFrame対応）
 */
 
-const Version = "000200"
+const Version = "000300"
 
 var Db *sql.DB
 var Dbmap *gorp.DbMap
@@ -103,7 +104,7 @@ func main() {
 		log.Printf("%s\n", err.Error())
 		return
 	}
-	log.Printf("Env.yml: %+v\n", envConfig)
+	log.Printf("Env.yml  evnConfig.SrAcct = %s\n", envConfig.SrAcct)
 	// --------------------------------
 
 	/// 環境変数から設定値を取得する
@@ -144,8 +145,8 @@ func main() {
 	log.Printf("API session prepared. csrf_token acquired (length=%d)\n", len(csrfToken))
 
 	switch mission {
-	case "daily":
-		log.Printf("Mission: daily\n")
+	case "daily", "newcommer":
+		log.Printf("Mission: %s\n", mission)
 		// 視聴の対象となる配信者のURLのリストを取得する
 		rooms, err := collectRooms(mission, noofrooms)
 		if err != nil {

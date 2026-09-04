@@ -10,8 +10,8 @@ Options:
 	-h, --help   Show this help and exit
 
 Defaults (from .vscode/launch.json):
-  mission    = daily
-  noOfRooms  = 2
+  mission    = daily (daily|newcommer|viewreward)
+  noOfRooms  = 25
   viewingTime= 40
   comment    = 39
 
@@ -50,7 +50,7 @@ if [ "$#" -gt 4 ]; then
 fi
 
 mission="${1:-daily}"
-no_of_rooms="${2:-2}"
+no_of_rooms="${2:-25}"
 viewing_time="${3:-40}"
 comment="${4:-39}"
 
@@ -96,4 +96,5 @@ if [ ! -f "DBConfig.enc.yml" ]; then
 	exit 1
 fi
 
-exec go run . "$mission" "$no_of_rooms" "$viewing_time" "$comment"
+# exec go run . "$mission" "$no_of_rooms" "$viewing_time" "$comment"
+./srMission "$mission" "$no_of_rooms" "$viewing_time" "$comment"
