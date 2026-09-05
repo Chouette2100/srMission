@@ -99,9 +99,11 @@ func viewReward(
 				log.Printf("watchAd failed: %v\n", err)
 			}
 
+			waitSec := 0
 			if !completed {
-				waitSec := adRewardWaitSeconds(adRetryCount)
-				log.Printf("viewReward: ad did not complete, wait %d sec before next loop\n", waitSec)
+				waitSec, adRetryCount = adRewardWaitSeconds(adRetryCount)
+				log.Printf("viewReward: ad did not complete, wait %d sec before next loop, adRetryCount %d\n",
+					waitSec, adRetryCount)
 				time.Sleep(time.Duration(waitSec) * time.Second)
 				adRetryCount++
 				continue
@@ -116,20 +118,20 @@ func viewReward(
 	return
 }
 
-func adRewardWaitSeconds(retryCount int) int {
+func adRewardWaitSeconds(retryCount int) (int, int) {
 	const uwait = 20     // 初回の待ち時間（秒）
 	const maxwait = 7200 // 待ち時間の最大値（秒）
 	if retryCount < 0 {
 		retryCount = 0
 	}
-	if retryCount % 5 == 0 {
+	if retryCount % 5 == 4 {
 		retryCount += 55
 	}
 	sec := uwait * (retryCount + 1)
 	if sec > maxwait {
 		sec = maxwait
 	}
-	return sec
+	return sec, retryCount
 }
 
 func readCount(page *rod.Page, selector string) (int, error) {
