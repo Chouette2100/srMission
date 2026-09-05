@@ -12,9 +12,12 @@ import (
 	"github.com/Chouette2100/srapi/v2"
 )
 
+const cmsg = "viewRoom: mission completed for room"
+
 func viewRoom(
 	client *http.Client,
 	csrftoken string,
+	mission string,
 	room Room,
 	viewingTime int,
 	comment string,
@@ -92,6 +95,14 @@ func viewRoom(
 		for j, continuous := range genre.Day.ContinuousMission {
 			log.Printf("    Continuous[%d]  %d / %d %s\n", j, continuous.CurrentLevel, continuous.MaxLevel, continuous.Title)
 		}
+	}
+
+	if mission == "daily" && (pmission.GenreList[0].Day.ContinuousMission[0].CurrentLevel ==
+		pmission.GenreList[0].Day.ContinuousMission[0].MaxLevel ||
+		pmission.GenreList[0].Night.ContinuousMission[0].CurrentLevel ==
+			pmission.GenreList[0].Night.ContinuousMission[0].MaxLevel) {
+		log.Printf(" %s Mission completed", mission)
+		err = fmt.Errorf(cmsg)
 	}
 
 	return

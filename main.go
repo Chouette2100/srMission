@@ -29,9 +29,11 @@ import (
 000200 2026-09-02 広告視聴のためのviewReawrd()を追加する(まだ意図したとおりに動作しない)
 000300 2026-09-05 000200/viewReward.goのレビュー、修正を行う（iFrame対応）
 000301 2026-09-06 広告視聴を5回繰り返しても報酬が得られないときは待ち時間を大幅に増やすようにする
+000302 2026-09-06 環境変数SR_TRACEBACKを有効にすると、SIGINT,SIGTERM時にgoroutineのスタックトレースを出力するようにする
+                  mission == dailyで有効な視聴ルーム数が20ルームに達したら処理を打ち切る
 */
 
-const Version = "000301"
+const Version = "000302"
 
 var Db *sql.DB
 var Dbmap *gorp.DbMap
@@ -66,8 +68,13 @@ func main() {
 
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile)
 	log.Printf("Version=%s Start\n", Version)
-	installSignalTracebackHandlers()
-	// --------------------------------
+	// 環境変数SR_TRACEBACKを有効にすると、SIGINT,SIGTERM時にgoroutineのスタックトレースを出力するようにする
+	if isTruthyEnv(os.Getenv("SR_TRACEBACK")) {
+		log.Printf("SR_TRACEBACK is enabled. SIGINT,SIGTERM will dump goroutine traceback.\n")
+		installSignalTracebackHandlers()
+	} else {
+		log.Printf("SR_TRACEBACK is disabled. SIGINT,SIGTERM will terminate without traceback.\n")
+	}
 
 	// DB接続
 	var dbconfig *srdblib.DBConfig
@@ -157,7 +164,10 @@ func main() {
 		// TODO: viewingTimeづつ視聴を行う
 		for _, room := range rooms {
 			log.Printf("Room: %+v\n", room)
-			if err = viewRoom(apiClient, csrfToken, room, viewingTime, comment); err != nil {
+			if err = viewRoom(apiClient, csrfToken, mission, room, viewingTime, comment); err != nil {
+				if err.Error() == cmsg {
+					break
+				}
 				log.Printf("Error: %v\n", err)
 			}
 		}
