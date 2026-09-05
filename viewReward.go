@@ -118,9 +118,12 @@ func viewReward(
 
 func adRewardWaitSeconds(retryCount int) int {
 	const uwait = 20     // 初回の待ち時間（秒）
-	const maxwait = 600 // 待ち時間の最大値（秒）
+	const maxwait = 7200 // 待ち時間の最大値（秒）
 	if retryCount < 0 {
 		retryCount = 0
+	}
+	if retryCount % 5 == 0 {
+		retryCount += 55
 	}
 	sec := uwait * (retryCount + 1)
 	if sec > maxwait {

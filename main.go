@@ -28,9 +28,10 @@ import (
 000100 2026-08-31 csrftokenとcookieを取得してAPIと連携する(コメント投稿とミッション達成状況の確認)
 000200 2026-09-02 広告視聴のためのviewReawrd()を追加する(まだ意図したとおりに動作しない)
 000300 2026-09-05 000200/viewReward.goのレビュー、修正を行う（iFrame対応）
+000301 2026-09-06 広告視聴を5回繰り返しても報酬が得られないときは待ち時間を大幅に増やすようにする
 */
 
-const Version = "000300"
+const Version = "000301"
 
 var Db *sql.DB
 var Dbmap *gorp.DbMap
