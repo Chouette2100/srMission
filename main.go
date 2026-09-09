@@ -21,6 +21,7 @@ import (
 	"github.com/Chouette2100/exsrapi/v2"
 	"github.com/Chouette2100/srapi/v2"
 	"github.com/Chouette2100/srdblib/v3"
+	"github.com/go-rod/rod/lib/proto"
 )
 
 /*
@@ -33,9 +34,15 @@ import (
                   mission == dailyで有効な視聴ルーム数が20ルームに達したら処理を打ち切る
 000303 2026-09-05 リトライが続いたときの待ち時間を5回毎に大幅に増やすようにする
 000304 2026-09-06 リトライが続いたときのadRetryCountの再定義を代入に修正する
+000305 2026-09-06 mission == "newcommer"のときも、視聴ルーム数が20ルームに達したら処理を打ち切る
+000306 2026-09-06 プログレスバーを見失ったらエラーとする。リトライの待ち時間は通常値と5️⃣回に一回の最大値とする
+000307 2026-09-06 リトライの待ち時間は通常値と5️⃣回に一回の最大値とする(前回修正は誤り、逆にしていた)
+000308 2026-09-08 新人新人ライバー応援キャンペーンの報酬を受け取ることができるようにする(1)
+000309 2026-09-09 接続時に表示されるモーダルダイアログを閉じ、不要なダイアログをすべて閉じる。
+000310 2026-09-09 viewRoom()のページ生成をmain()のループ外に出し、1ページを使い回すようにする。
 */
 
-const Version = "000304"
+const Version = "000310"
 
 var Db *sql.DB
 var Dbmap *gorp.DbMap
@@ -163,11 +170,25 @@ func main() {
 			log.Printf("Error: %v\n", err)
 			return
 		}
+
+		// 視聴用のページを作成し、日本語ロケールを適用する
+		page, err := srBrowser.Page(proto.TargetCreateTarget{URL: "about:blank"})
+		if err != nil {
+			log.Printf("Error: failed to create page: %v\n", err)
+			return
+		}
+		defer page.Close()
+		if err = applyJapaneseLocale(page); err != nil {
+			log.Printf("Error: failed to apply Japanese locale: %v\n", err)
+			return
+		}
+
 		// TODO: viewingTimeづつ視聴を行う
 		for _, room := range rooms {
 			log.Printf("Room: %+v\n", room)
-			if err = viewRoom(apiClient, csrfToken, mission, room, viewingTime, comment); err != nil {
+			if err = viewRoom(page, apiClient, csrfToken, mission, room, viewingTime, comment); err != nil {
 				if err.Error() == cmsg {
+					log.Printf("viewRoom(): Mission completed\n")
 					break
 				}
 				log.Printf("Error: %v\n", err)

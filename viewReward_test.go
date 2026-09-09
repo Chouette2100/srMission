@@ -46,7 +46,7 @@ func TestAdRewardWaitSeconds(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got, _ := adRewardWaitSeconds(tt.retryCount)
+		got := adRewardWaitSeconds(tt.retryCount)
 		if got < tt.wantMin || got > tt.wantMax {
 			t.Errorf("adRewardWaitSeconds(%d) = %d, want between %d and %d", tt.retryCount, got, tt.wantMin, tt.wantMax)
 		}

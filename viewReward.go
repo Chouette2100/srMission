@@ -101,7 +101,7 @@ func viewReward(
 
 			waitSec := 0
 			if !completed {
-				waitSec, adRetryCount = adRewardWaitSeconds(adRetryCount)
+				waitSec = adRewardWaitSeconds(adRetryCount)
 				log.Printf("viewReward: ad did not complete, wait %d sec before next loop, adRetryCount %d\n",
 					waitSec, adRetryCount)
 				time.Sleep(time.Duration(waitSec) * time.Second)
@@ -118,20 +118,18 @@ func viewReward(
 	return
 }
 
-func adRewardWaitSeconds(retryCount int) (int, int) {
-	const uwait = 20     // 初回の待ち時間（秒）
-	const maxwait = 7200 // 待ち時間の最大値（秒）
+func adRewardWaitSeconds(retryCount int) int {
+	const uwait = 5      // 通常の待ち時間（秒）
+	const maxwait = 1800 // 5回に一回の待ち時間（秒）
 	if retryCount < 0 {
 		retryCount = 0
 	}
-	if retryCount % 5 == 4 {
-		retryCount += 55
-	}
-	sec := uwait * (retryCount + 1)
-	if sec > maxwait {
-		sec = maxwait
-	}
-	return sec, retryCount
+	if retryCount%30 == 29 {
+		return maxwait
+	} else if retryCount%10 == 9 {
+		return 300
+	} 
+	return uwait
 }
 
 func readCount(page *rod.Page, selector string) (int, error) {
@@ -430,6 +428,7 @@ func monitorProgressBar(progressEl *rod.Element, deadline time.Time) (bool, erro
 		}`)
 		if err != nil {
 			log.Printf("waitAdProgressComplete: failed to get width: %v\n", err)
+			return false, fmt.Errorf("failed to get width: %w", err)
 		} else {
 			width := widthObj.Value.String()
 			if p := parsePercent(width); p >= 100 {
