@@ -57,6 +57,7 @@ func viewRoom(
 	}
 
 	ttime := time.Now().Add(time.Duration(viewingTime) * time.Second)
+	log.Printf("viewRoom: waiting until %s (viewingTime=%d seconds)\n", ttime.Format("15:04:05"), viewingTime)
 
 	// 告知のモーダルダイアログを閉じる
 	mdb, err := page.Timeout(10 * time.Second).Element(
@@ -95,6 +96,7 @@ func viewRoom(
 
 	// ttimeまで待機する
 	time.Sleep(time.Until(ttime))
+	log.Printf("viewRoom: waiting finished at %s\n", time.Now().Format("15:04:05"))
 
 	/*
 		var pmission *srapi.Mission
@@ -167,14 +169,25 @@ func viewRoom(
 		receivable := 0
 		others := 0
 		progress := 0
-		for i, btn := range buttons {
-			// 各ボタンに対して状態を確認
-			classAttr, _ := btn.Attribute("class")
+		for i := range len(buttons) {
+			nbuttons, err := page.Timeout(10 * time.Second).Elements(selector)
+			if err != nil {
+				return err
+			}
 
+			// 各ボタンに対して状態を確認
+			btn := nbuttons[i]
 			if _, err = btn.WaitInteractable(); err != nil {
 				// return fmt.Errorf("btn not interactable: %w", err)
 				log.Printf("Button %d not interactable: %v\n", i, err)
 			}
+
+			classAttr, err := btn.Attribute("class")
+			if err != nil {
+				log.Printf("Error getting class attribute for button %d: %v\n", i, err)
+				continue
+			}
+
 
 			// nilチェックと判定
 			// if classAttr != nil && strings.Contains(*classAttr, "receivable") {
@@ -186,8 +199,10 @@ func viewRoom(
 						// クリック処理
 						if err := btn.Click(proto.InputMouseButtonLeft, 1); err != nil {
 							log.Printf("Error clicking button %d: %v\n", i, err)
+							page.MustWaitIdle()
 							continue // エラーが出ても次へ進むなどの制御が可能
 						}
+						page.MustWaitIdle()
 					}
 				} else if strings.Contains(*classAttr, "received") {
 					log.Printf("Button %d is received\n", i)
@@ -206,7 +221,8 @@ func viewRoom(
 					}
 				}
 				// クリック後に画面が更新される場合は待機を入れる
-				page.WaitIdle(1 * time.Second)
+				// page.WaitIdle(1 * time.Second)
+				page.MustWaitIdle()
 			}
 		}
 		log.Printf("Total buttons: %d, receivable: %d, received: %d, progress: %d, others: %d\n",
@@ -232,12 +248,13 @@ func viewRoom(
 		if err := li.Click(proto.InputMouseButtonLeft, 1); err != nil {
 			return fmt.Errorf("failed to click the li element: %w", err)
 		}
+		page.MustWaitIdle()
 
 		// 1. 共通する親要素からボタンをすべて取得するセレクタを指定
 		// nth-child(n) を使わず、クラス名や構造で絞り込むのがコツです
 		selector := ".missions > div:nth-child(4) > ol:nth-child(2) > li > div > div > button"
 
-		time.Sleep(5 * time.Second) // ページが完全に読み込まれるまで待機
+		// time.Sleep(5 * time.Second) // ページが完全に読み込まれるまで待機
 
 		// 2. Elements() で全要素を取得
 		buttons, err := page.Timeout(10 * time.Second).Elements(selector)
@@ -249,13 +266,18 @@ func viewRoom(
 		received := 0
 		receivable := 0
 		others := 0
-		for i, btn := range buttons {
-			// 各ボタンに対して状態を確認
-			classAttr, _ := btn.Attribute("class")
-
+		for i := range len(buttons) {
+			nbuttons, err := page.Timeout(10 * time.Second).Elements(selector)
+			if err != nil {
+				return err
+			}
+			btn := nbuttons[i]
 			if _, err = btn.WaitInteractable(); err != nil {
 				return fmt.Errorf("btn not interactable: %w", err)
 			}
+
+			// 各ボタンに対して状態を確認
+			classAttr, _ := btn.Attribute("class")
 
 			// nilチェックと判定
 			// if classAttr != nil && strings.Contains(*classAttr, "receivable") {
@@ -266,8 +288,10 @@ func viewRoom(
 					// クリック処理
 					if err := btn.Click(proto.InputMouseButtonLeft, 1); err != nil {
 						log.Printf("Error clicking button %d: %v\n", i, err)
+						page.MustWaitIdle()
 						continue // エラーが出ても次へ進むなどの制御が可能
 					}
+					page.MustWaitIdle()
 				} else if strings.Contains(*classAttr, "received") {
 					log.Printf("Button %d is received\n", i)
 					received++
@@ -277,7 +301,7 @@ func viewRoom(
 				}
 
 				// クリック後に画面が更新される場合は待機を入れる
-				page.WaitIdle(1 * time.Second)
+				// page.WaitIdle(1 * time.Second)
 			}
 		}
 		log.Printf("Total buttons: %d, receivable: %d, received: %d, others: %d\n", len(buttons), receivable, received, others)
