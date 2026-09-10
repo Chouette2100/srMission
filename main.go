@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"database/sql"
@@ -42,9 +43,10 @@ import (
 000310 2026-09-09 viewRoom()のページ生成をmain()のループ外に出し、1ページを使い回すようにする。
 000311 2026-09-10 タイミング調整（Sleep()はウェイトのために使い、画面の更新待ちはMustWaitIdle()）を使う）
 000312 2026-09-10 ボタン列/リンク列の処理をループで行うとき、一周ごとにボタン列/リンク列の情報を取得する。
+000313 2026-09-10 checkReceivedDaily()を導入する。02時台、14時台であればキラキラを受け取る
 */
 
-const Version = "000312"
+const Version = "000313"
 
 var Db *sql.DB
 var Dbmap *gorp.DbMap
@@ -189,7 +191,7 @@ func main() {
 		for _, room := range rooms {
 			log.Printf("Room: %+v\n", room)
 			if err = viewRoom(page, apiClient, csrfToken, mission, room, viewingTime, comment); err != nil {
-				if err.Error() == cmsg {
+				if strings.Contains(err.Error(), cmsg) {
 					log.Printf("viewRoom(): Mission completed\n")
 					break
 				}

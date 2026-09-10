@@ -95,143 +95,13 @@ func viewRoom(
 	}
 
 	// ttimeまで待機する
-	time.Sleep(time.Until(ttime))
-	log.Printf("viewRoom: waiting finished at %s\n", time.Now().Format("15:04:05"))
-
-	/*
-		var pmission *srapi.Mission
-		pmission, err = srapi.ApiMission(client, strconv.Itoa(room.RoomID))
-		if err != nil {
-			return fmt.Errorf("srapi.ApiMission: %w", err)
-		}
-
-		for i, genre := range pmission.GenreList {
-			log.Printf("[%d] %s\n", i, genre.Name)
-
-			log.Printf("  Night\n")
-			for j, single := range genre.Night.SingleMission {
-				log.Printf("    Single[%d]  %d / %d %s\n", j, single.CurrentLevel, single.MaxLevel, single.Title)
-			}
-			log.Printf("    Composite   %d / %d %s\n",
-				genre.Night.CompositeMission.CurrentLevel,
-				genre.Night.CompositeMission.MaxLevel,
-				genre.Night.CompositeMission.Title,
-			)
-			for j, continuous := range genre.Night.ContinuousMission {
-				log.Printf("    Continuous[%d]  %d / %d %s\n", j, continuous.CurrentLevel, continuous.MaxLevel, continuous.Title)
-			}
-
-			log.Printf("  Day\n")
-			for j, single := range genre.Day.SingleMission {
-				log.Printf("    Single[%d]  %d / %d %s\n", j, single.CurrentLevel, single.MaxLevel, single.Title)
-			}
-			log.Printf("    Composite   %d / %d %s\n",
-				genre.Day.CompositeMission.CurrentLevel,
-				genre.Day.CompositeMission.MaxLevel,
-				genre.Day.CompositeMission.Title,
-			)
-			for j, continuous := range genre.Day.ContinuousMission {
-				log.Printf("    Continuous[%d]  %d / %d %s\n", j, continuous.CurrentLevel, continuous.MaxLevel, continuous.Title)
-			}
-		}
-	*/
 
 	switch mission {
 	case "daily":
-		// 「デイリー（昼/夜）」というテキストを含む li 要素を直接指定
-		li, err := page.Timeout(10 * time.Second).ElementX(
-			"//li[contains(text(), 'デイリー（昼/夜）')]")
+		err = checkReceivedDaily(page)
 		if err != nil {
-			return fmt.Errorf("failed to find the li element: %w", err)
+			return fmt.Errorf("checkReceivedDaily: %w", err)
 		}
-
-		if _, err = li.WaitInteractable(); err != nil {
-			return fmt.Errorf("button not interactable: %w", err)
-		}
-
-		if err := li.Click(proto.InputMouseButtonLeft, 1); err != nil {
-			return fmt.Errorf("failed to click the li element: %w", err)
-		}
-		page.MustWaitIdle()
-
-		// 1. 共通する親要素からボタンをすべて取得するセレクタを指定
-		// nth-child(n) を使わず、クラス名や構造で絞り込むのがコツです
-		selector := "#mission-list .achieve-button"
-
-		// 2. Elements() で全要素を取得
-		buttons, err := page.Timeout(10 * time.Second).Elements(selector)
-		if err != nil {
-			return err
-		}
-
-		// 3. ループで回す
-		received := 0
-		receivable := 0
-		others := 0
-		progress := 0
-		for i := range len(buttons) {
-			nbuttons, err := page.Timeout(10 * time.Second).Elements(selector)
-			if err != nil {
-				return err
-			}
-
-			// 各ボタンに対して状態を確認
-			btn := nbuttons[i]
-			if _, err = btn.WaitInteractable(); err != nil {
-				// return fmt.Errorf("btn not interactable: %w", err)
-				log.Printf("Button %d not interactable: %v\n", i, err)
-			}
-
-			classAttr, err := btn.Attribute("class")
-			if err != nil {
-				log.Printf("Error getting class attribute for button %d: %v\n", i, err)
-				continue
-			}
-
-
-			// nilチェックと判定
-			// if classAttr != nil && strings.Contains(*classAttr, "receivable") {
-			if classAttr != nil {
-				if strings.Contains(*classAttr, "receivable") {
-					log.Printf("Button %d is receivable, clicking...\n", i)
-					receivable++
-					if i != 4 { // 「キラキラ星 x500」は適切なタイミングに受け取る必要がある
-						// クリック処理
-						if err := btn.Click(proto.InputMouseButtonLeft, 1); err != nil {
-							log.Printf("Error clicking button %d: %v\n", i, err)
-							page.MustWaitIdle()
-							continue // エラーが出ても次へ進むなどの制御が可能
-						}
-						page.MustWaitIdle()
-					}
-				} else if strings.Contains(*classAttr, "received") {
-					log.Printf("Button %d is received\n", i)
-					received++
-				} else {
-					log.Printf("Button %d is other: %s\n", i, *classAttr)
-					others++
-				}
-
-				if i == 1 { // 視聴したルーム数を確認する
-					progress, err = getProgressValue(btn)
-					if err != nil {
-						log.Printf("Error getting progress value from button %d: %v\n", i, err)
-					} else {
-						log.Printf("Progress value from button %d: %d\n", i, progress)
-					}
-				}
-				// クリック後に画面が更新される場合は待機を入れる
-				// page.WaitIdle(1 * time.Second)
-				page.MustWaitIdle()
-			}
-		}
-		log.Printf("Total buttons: %d, receivable: %d, received: %d, progress: %d, others: %d\n",
-			len(buttons), receivable, received, progress, others)
-		if progress == 20 {
-			err = fmt.Errorf(cmsg)
-			return err
-		}
-
 	case "newcommer":
 
 		// 「新人ライバー応援キャンペーン」というテキストを含む li 要素を直接指定
@@ -313,44 +183,8 @@ func viewRoom(
 		return fmt.Errorf("unknown mission type: %s", mission)
 	}
 
-	/*
-		// 2. Elements() で全要素を取得
-		buttons, err = page.Elements(selector)
-		if err != nil {
-			return err
-		}
+	time.Sleep(time.Until(ttime))
+	log.Printf("viewRoom: waiting finished at %s\n", time.Now().Format("15:04:05"))
 
-		// 3. ループで回す
-		nb := 0
-		for i, btn := range buttons {
-			// 各ボタンに対して状態を確認
-			classAttr, _ := btn.Attribute("class")
-
-			// nilチェックと判定
-			if classAttr != nil && strings.Contains(*classAttr, "receivable") {
-				log.Printf("Button %d is receivable, clicking...\n", i)
-				nb++
-				// クリック処理
-				if err := btn.Click(proto.InputMouseButtonLeft, 1); err != nil {
-					continue // エラーが出ても次へ進むなどの制御が可能
-				}
-
-				// クリック後に画面が更新される場合は待機を入れる
-				page.WaitIdle(1 * time.Second)
-			}
-		}
-		log.Printf("Total received buttons clicked: %d\n", nb)
-	*/
-
-	/*
-		if (mission == "daily" || mission == "newcommer") &&
-			(pmission.GenreList[0].Day.ContinuousMission[0].CurrentLevel ==
-				pmission.GenreList[0].Day.ContinuousMission[0].MaxLevel ||
-				pmission.GenreList[0].Night.ContinuousMission[0].CurrentLevel ==
-					pmission.GenreList[0].Night.ContinuousMission[0].MaxLevel) {
-			log.Printf(" %s Mission completed", mission)
-			err = fmt.Errorf(cmsg)
-		}
-	*/
 	return nil
 }

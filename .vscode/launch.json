@@ -23,11 +23,11 @@
                 "SR_BROWSER_BIN": "/etc/profiles/per-user/chouette/bin/google-chrome-stable",
             },
             "args": [
-                "daily",
-                // "newcommer",
+                // "daily",
+                "newcommer",
                 // "viewreward", // Event ID
                 "25", // No of Rooms
-                "40", // Viewing Time
+                "35", // Viewing Time
                 "39", // Comment
                 // "1",
                 // "1",
