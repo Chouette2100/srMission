@@ -74,15 +74,33 @@ func checkGiftInventory(page *rod.Page) (giftlist []Gift, err error) {
 }
 // 指定したセットのギフトを投げる
 func throwGift(page *rod.Page, giftID string, count string) error {
-	selector := ""
+
+	err := page.WaitIdle(10 * time.Second)
+	if err != nil {
+		return fmt.Errorf("failed to wait for page idle: %w", err)
+	}
+
+	selector := fmt.Sprintf("li.gift div[gift_id=\"%s\"] button", giftID)
+	log.Printf("throwGift: clicking gift button for gift %s\n", selector)
+	gbtn, err := page.Timeout(20 * time.Second).Element(selector)
+	if err != nil {
+		return fmt.Errorf("failed to find element for gift %s: %w", giftID, err)
+	}
+	if _, err = gbtn.WaitInteractable(); err != nil {
+		return fmt.Errorf("button not interactable for gift %s: %w", giftID, err)
+	}
+	if err := gbtn.Click(proto.InputMouseButtonLeft, 1); err != nil {
+		return fmt.Errorf("failed to click button for gift %s: %w", giftID, err)
+	}
+
 	switch count {
-	case "1", "5", "10", "100":
-		selector = "//button[contains(., '×" + count + "送信')]"
+	case "10":
+		selector = ".st-gift_quantity_selector__list li:last-child .st-gift_quantity_selector__button"
 	default:
 		return fmt.Errorf("invalid count: %s", count)
 	}
 
-	btn, err := page.Timeout(10 * time.Second).ElementX(selector)
+	btn, err := page.Timeout(10 * time.Second).Element(selector)
 	if err != nil {
 		return fmt.Errorf("failed to find element for gift %s with count %s: %w", giftID, count, err)
 	}
@@ -91,6 +109,17 @@ func throwGift(page *rod.Page, giftID string, count string) error {
 	}
 	if err := btn.Click(proto.InputMouseButtonLeft, 1); err != nil {
 		return fmt.Errorf("failed to click button for gift %s with count %s: %w", giftID, count, err)
+	}
+
+	cfm, err := page.Timeout(5 * time.Second).Element(".st-bulk_gift_confirm_modal__submit")
+	if err != nil {
+		return fmt.Errorf("confirm button not found %s: %w", giftID, err)
+	}
+	if _, err = cfm.WaitInteractable(); err != nil {
+		return fmt.Errorf("confirm button not interactable for gift %s: %w", giftID, err)
+	}
+	if err := cfm.Click(proto.InputMouseButtonLeft, 1); err != nil {
+		return fmt.Errorf("failed to click confirm button for gift %s: %w", giftID, err)
 	}
 	return nil
 }

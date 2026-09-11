@@ -25,7 +25,7 @@
             "args": [
                 "daily",
                 // "newcommer",
-                // "viewreward", // Event ID
+                // "viewreward",
                 "40", // No of Rooms
                 "45", // Viewing Time
                 "39", // Comment nil, j, 39, ...

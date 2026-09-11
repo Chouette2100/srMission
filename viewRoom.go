@@ -55,9 +55,6 @@ func viewRoom(
 		return fmt.Errorf("failed to wait room page load: %w", err)
 	}
 
-	ttime := time.Now().Add(time.Duration(viewingTime) * time.Second)
-	log.Printf("viewRoom: waiting until %s (viewingTime=%d seconds)\n", ttime.Format("15:04:05"), viewingTime)
-
 	// 告知のモーダルダイアログを閉じる
 	mdb, err := page.Timeout(10 * time.Second).Element(
 		".st-gift_bulk_sending_intro__close")
@@ -72,6 +69,10 @@ func viewRoom(
 		}
 		page.MustWaitIdle() // 描画が落ち着くのを待つ
 	}
+
+	// 視聴完了時刻を求める
+	ttime := time.Now().Add(time.Duration(viewingTime) * time.Second)
+	log.Printf("viewRoom: waiting until %s (viewingTime=%d seconds)\n", ttime.Format("15:04:05"), viewingTime)
 
 	// 一番下までスクロールして、トグルボタンを見えるようにする
 	// page.MustEval(`window.scrollTo(0, document.body.scrollHeight)`)
@@ -95,13 +96,14 @@ func viewRoom(
 		log.Printf("Error: failed to find the gift box element: %v\n", err)
 	}
 
+	// ギフトボックスの位置を変える(コメント投稿の邪魔にならないようにする)
 	_, err = el.Eval(`(el) => {
 		const elt = this;
 		const rect = elt.getBoundingClientRect();
 
 		// position: fixed にして画面座標ベースで配置
 		elt.style.position = 'fixed';
-		elt.style.top = (rect.top - 300) + 'px';
+		elt.style.top = (rect.top - 400) + 'px';
 		elt.style.left = rect.left + 'px';
 
 		// bottom/right が設定されている場合を考慮して解除
@@ -113,44 +115,30 @@ func viewRoom(
 		log.Printf("Error: failed to move the dialog: %v\n", err)
 	}
 
-	if comment != "nil" {
-		//	time.Sleep(time.Duration(dtmin) * time.Second)
-		//	srapi.ApiLivePostLiveComment(client, comment, csrftoken, room.LiveID)
-		if comment == "j" {
-			// 朝、昼、夜で挨拶を変える
-			hour := time.Now().Hour()
-			if hour > 3 && hour < 10 {
-				comment = "おはようございます"
-			} else if hour < 18 {
-				comment = "こんにちは"
-			} else {
-				comment = "こんばんは"
-			}
-		}
-		cinput, err := page.Timeout(10 * time.Second).Element(".comment-input input")
-		if err == nil {
-			if _, err = cinput.WaitInteractable(); err == nil {
-				err = cinput.Input(comment)
-				if err != nil {
-					log.Printf("Error: failed to input comment: %v\n", err)
-				} else {
-					cbtn, err := page.Timeout(10 * time.Second).Element(".st-comment__button")
-					if err == nil {
-						if _, err = cbtn.WaitInteractable(); err == nil {
-							err = cbtn.Click(proto.InputMouseButtonLeft, 1)
-							if err != nil {
-								log.Printf("Error: failed to click comment button: %v\n", err)
-							} else {
-								log.Printf("Comment posted: %s\n", comment)
-							}
-						}
-					}
-				}
-			}
-		}
+		// ギフトボックスが表示されるまで待つ
+	// el, err := page.Timeout(10 * time.Second).Element(".st-gift_box.active.gift-box")
+	cb, err := page.Element(".st-comment__box")
+	if err != nil {
+		log.Printf("Error: failed to find the comment box element: %v\n", err)
 	}
 
-	// ttimeまで待機する
+	// ギフトボックスの位置を変える(コメント投稿の邪魔にならないようにする)
+	_, err = cb.Eval(`(cb) => {
+		const rect = this.getBoundingClientRect();
+
+		// position: fixed にして画面座標ベースで配置
+		this.style.position = 'fixed';
+		this.style.top = (rect.top - 200) + 'px';
+		this.style.left = rect.left + 'px';
+
+		// bottom/right が設定されている場合を考慮して解除
+		this.style.right = 'auto';
+		this.style.bottom = 'auto';
+		this.style.margin = '0';
+	}`)
+	if err != nil {
+		log.Printf("Error: failed to move the comment box: %v\n", err)
+	}
 
 	switch mission {
 	case "daily":
@@ -239,6 +227,10 @@ func viewRoom(
 		return fmt.Errorf("unknown mission type: %s", mission)
 	}
 
+	// コメント投稿を行う
+	sendComment(page, comment)
+
+	// 視聴時間が経過するまで待機
 	time.Sleep(time.Until(ttime))
 	log.Printf("viewRoom: waiting finished at %s\n", time.Now().Format("15:04:05"))
 
