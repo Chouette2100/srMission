@@ -119,7 +119,7 @@
 				}
 
 				if i == 1 { // 視聴したルーム数を確認する
-					progress, err = getProgressValue(btn)
+					progress, err = getProgressValue(page)
 					if err != nil {
 						log.Printf("Error getting progress value from button %d: %v\n", i, err)
 					} else {

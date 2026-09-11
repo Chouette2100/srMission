@@ -4,22 +4,19 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-rod/rod"
 )
 
-func getProgressValue(button *rod.Element) (int, error) {
-	// 1. buttonの次の兄弟要素である div.received-num をXPathで取得
-	// "following-sibling::div[1]" は「直後のdiv」を指します
-	// targetDiv, err := button.Element("xpath:./following-sibling::div[1]")
-	// targetDiv, err := button.Element("+ .received-num")
-	// targetDiv, err := button.ElementX("./following-sibling::div[1]")
-	// targetDiv, err := button.ElementByJS("this.nextElementSibling")
-	targetDiv, err := button.MustParent().Element("button + .received-num")
-
+func getProgressValue(page *rod.Page) (int, error) {
+	targetDiv, err := page.Timeout(10 * time.Second).Element(".achieve-section .received-num")
 	if err != nil {
-		err = fmt.Errorf("failed to find the sibling div: %w", err)
-		return 0, err
+		return 0, fmt.Errorf("failed to find the target div: %w", err)
+	}
+	_, err = targetDiv.WaitInteractable()
+	if err != nil {
+		return 0, fmt.Errorf("target div not interactable: %w", err)
 	}
 
 	// 2. テキストを取得 ("受取済18/20")
