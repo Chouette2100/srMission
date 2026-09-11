@@ -3,23 +3,22 @@ package main
 import (
 	"fmt"
 	"log"
-	"net/http"
+	// "net/http"
 	// "strconv"
 	"strings"
 	"time"
 
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/proto"
-
-	"github.com/Chouette2100/srapi/v2"
+	// "github.com/Chouette2100/srapi/v2"
 )
 
 const cmsg = "viewRoom: mission completed for room"
 
 func viewRoom(
 	page *rod.Page,
-	client *http.Client,
-	csrftoken string,
+	// client *http.Client,
+	// csrftoken string,
 	mission string,
 	room Room,
 	viewingTime int,
@@ -80,7 +79,7 @@ func viewRoom(
 	page.MustWaitIdle() // 描画が落ち着くのを待つ
 
 	// "ミッション"のダイアログのみ表示するために、トグルボタンの状態を同期する
-	err = SyncActiveButton(page, "ミッション")
+	err = SyncActiveButton(page, []string{"ミッション", "コメント", "ギフト"})
 	if err != nil {
 		return fmt.Errorf("SyncActiveButton: %w", err)
 	}
@@ -89,9 +88,66 @@ func viewRoom(
 	page.Mouse.Scroll(0, -100000, 1)
 	page.MustWaitIdle()
 
+	// ギフトボックスが表示されるまで待つ
+	// el, err := page.Timeout(10 * time.Second).Element(".st-gift_box.active.gift-box")
+	el, err := page.Element(".st-gift_box.active.gift-box, .st-fan__status")
+	if err != nil {
+		log.Printf("Error: failed to find the gift box element: %v\n", err)
+	}
+
+	_, err = el.Eval(`(el) => {
+		const elt = this;
+		const rect = elt.getBoundingClientRect();
+
+		// position: fixed にして画面座標ベースで配置
+		elt.style.position = 'fixed';
+		elt.style.top = (rect.top - 300) + 'px';
+		elt.style.left = rect.left + 'px';
+
+		// bottom/right が設定されている場合を考慮して解除
+		elt.style.right = 'auto';
+		elt.style.bottom = 'auto';
+		elt.style.margin = '0';
+	}`)
+	if err != nil {
+		log.Printf("Error: failed to move the dialog: %v\n", err)
+	}
+
 	if comment != "nil" {
-		time.Sleep(time.Duration(dtmin) * time.Second)
-		srapi.ApiLivePostLiveComment(client, comment, csrftoken, room.LiveID)
+		//	time.Sleep(time.Duration(dtmin) * time.Second)
+		//	srapi.ApiLivePostLiveComment(client, comment, csrftoken, room.LiveID)
+		if comment == "j" {
+			// 朝、昼、夜で挨拶を変える
+			hour := time.Now().Hour()
+			if hour > 3 && hour < 10 {
+				comment = "おはようございます"
+			} else if hour < 18 {
+				comment = "こんにちは"
+			} else {
+				comment = "こんばんは"
+			}
+		}
+		cinput, err := page.Timeout(10 * time.Second).Element(".comment-input input")
+		if err == nil {
+			if _, err = cinput.WaitInteractable(); err == nil {
+				err = cinput.Input(comment)
+				if err != nil {
+					log.Printf("Error: failed to input comment: %v\n", err)
+				} else {
+					cbtn, err := page.Timeout(10 * time.Second).Element(".st-comment__button")
+					if err == nil {
+						if _, err = cbtn.WaitInteractable(); err == nil {
+							err = cbtn.Click(proto.InputMouseButtonLeft, 1)
+							if err != nil {
+								log.Printf("Error: failed to click comment button: %v\n", err)
+							} else {
+								log.Printf("Comment posted: %s\n", comment)
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 
 	// ttimeまで待機する

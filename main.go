@@ -44,9 +44,13 @@ import (
 000311 2026-09-10 タイミング調整（Sleep()はウェイトのために使い、画面の更新待ちはMustWaitIdle()）を使う）
 000312 2026-09-10 ボタン列/リンク列の処理をループで行うとき、一周ごとにボタン列/リンク列の情報を取得する。
 000313 2026-09-10 checkReceivedDaily()を導入する。02時台、14時台であればキラキラを受け取る
+000314 2026-09-10 APIを使わないコメント投稿を行う。ギフトボックスを表示し位置を変える（ギフトの準備）
+000315 2026-09-11 Dailyでギフトが投げられていないときは、星あるいは草を10個投げる。
+
+------ ---------- 音声出力ありのときの「進む」バタンに対応する。
 */
 
-const Version = "000313"
+const Version = "000315"
 
 var Db *sql.DB
 var Dbmap *gorp.DbMap
@@ -190,10 +194,16 @@ func main() {
 		// TODO: viewingTimeづつ視聴を行う
 		for _, room := range rooms {
 			log.Printf("Room: %+v\n", room)
-			if err = viewRoom(page, apiClient, csrfToken, mission, room, viewingTime, comment); err != nil {
+			// if err = viewRoom(page, apiClient, csrfToken, mission, room, viewingTime, comment); err != nil {
+			if err = viewRoom(page, mission, room, viewingTime, comment); err != nil {
 				if strings.Contains(err.Error(), cmsg) {
 					log.Printf("viewRoom(): Mission completed\n")
 					break
+				}
+				if strings.Contains(err.Error(), "expected 2 target buttons, but found") {
+					// このルームは配信していない
+					log.Printf("viewRoom(): this room is not live, skipping to next room\n")
+					continue
 				}
 				log.Printf("Error: %v\n", err)
 			}

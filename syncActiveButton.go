@@ -1,16 +1,26 @@
 package main
 
 import (
+    "fmt"
     "strings"
     "github.com/go-rod/rod"
 )
-func SyncActiveButton(page *rod.Page, targetText string) error {
+func SyncActiveButton(page *rod.Page, targetText []string) error {
     // 1. 対象となるボタン群をすべて取得
     buttons := page.MustElements(".st-activate__button")
 
+    nhit := 0
     for _, btn := range buttons {
         text := btn.MustText()
-        isTarget := strings.Contains(text, targetText)
+        isTarget := false
+        for _, t := range targetText {
+            // if strings.Contains(text, t) {
+            if text == t {
+                isTarget = true
+                nhit++
+                break
+            }
+        }
         hasClassActive := strings.Contains(*btn.MustAttribute("class"), "active")
 
         if isTarget {
@@ -24,6 +34,10 @@ func SyncActiveButton(page *rod.Page, targetText string) error {
                 btn.MustClick()
             }
         }
+    }
+    ndlg := len(targetText)
+    if nhit != ndlg {
+        return fmt.Errorf("expected %d target buttons, but found %d", ndlg, nhit)
     }
     return nil
 }

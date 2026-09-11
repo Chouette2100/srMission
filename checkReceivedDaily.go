@@ -29,7 +29,6 @@
 		}
 		page.MustWaitIdle()
 
-		/*
 		// 進捗を更新する
 		btn, err := page.Timeout(10 * time.Second).Element(".reload-button")
 		if err != nil {
@@ -44,7 +43,7 @@
 			return fmt.Errorf("failed to click the reload button: %w", err)
 		}
 		page.MustWaitIdle()
-		*/
+		time.Sleep(5 * time.Second) // 進捗更新のための待機（これがないとボタンの一覧を取るところでエラーになる）
 
 		// 1. 共通する親要素からボタンをすべて取得するセレクタを指定
 		// nth-child(n) を使わず、クラス名や構造で絞り込むのがコツです
@@ -60,7 +59,7 @@
 			// 2. Elements() で全要素を取得
 			buttons, err := page.Timeout(10 * time.Second).Elements(selector)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to Elements(selector): %w", err)
 			}
 			if i >= len(buttons) {
 				log.Printf("Button index %d out of range, total buttons: %d\n", i, len(buttons))
@@ -103,6 +102,20 @@
 				} else {
 					log.Printf("Button %d is other: %s\n", i, *classAttr)
 					others++
+					if i == 2 && strings.Contains(*classAttr, "challenging") {
+						// まだ一度もギフトを投げていない
+						giftlist, err := checkGiftInventory(page)
+						if err != nil {
+							log.Printf("Error checking gift inventory: %v\n", err)
+						} else {
+							if giftlist[0].Count >= 10 {
+								err = throwGift(page, giftlist[0].Name, "10")
+								if err != nil {
+									log.Printf("Error throwing gift: %v\n", err)
+								}
+							}	
+						}
+					}
 				}
 
 				if i == 1 { // 視聴したルーム数を確認する
@@ -118,8 +131,8 @@
 				page.MustWaitIdle()
 			}
 		}
-		log.Printf("Total buttons: %d, receivable: %d, received: %d, progress: %d, others: %d\n",
-			i+1, receivable, received, progress, others)
+		log.Printf("receivable: %d, received: %d, others: %d (progress: %d)\n",
+			receivable, received, others, progress)
 		if progress == 20 {
 			err = fmt.Errorf(cmsg)
 			return err
