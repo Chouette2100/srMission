@@ -9,6 +9,7 @@ import (
 )
 
 func sendComment(page *rod.Page, comment string) {
+	sleep(2)
 	if comment != "nil" {
 		//	time.Sleep(time.Duration(dtmin) * time.Second)
 		//	srapi.ApiLivePostLiveComment(client, comment, csrftoken, room.LiveID)

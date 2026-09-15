@@ -75,6 +75,7 @@ func checkGiftInventory(page *rod.Page) (giftlist []Gift, err error) {
 // 指定したセットのギフトを投げる
 func throwGift(page *rod.Page, giftID string, count string) error {
 
+	sleep(1)
 	err := page.WaitIdle(10 * time.Second)
 	if err != nil {
 		return fmt.Errorf("failed to wait for page idle: %w", err)

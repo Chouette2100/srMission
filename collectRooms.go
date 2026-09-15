@@ -57,6 +57,9 @@ func collectRooms(
 	lives, err = srapi.GetLiveOnlives3(http.DefaultClient, genre.IDs)
 
 	for _, live := range lives {
+		// if chkDup(live.RoomID, mission) {
+		// 	continue
+		// }
 		room := Room{
 			MainName:  live.MainName,
 			URL:       "https://showroom-live.com/r/" + live.RoomURLKey,
@@ -81,3 +84,17 @@ func collectRooms(
 
 	return rooms, err
 }
+/*
+// すでに視聴済みのルームであるか？
+func chkDup(roomID int, mission string) bool {
+
+	vh := ViewingHistory{}
+	_, err := Dbmap.Get(&vh, true, roomID)
+	if err != nil {
+		log.Printf("Error: failed to get viewing history for roomID %d: %v\n", roomID, err)
+		Dbmap.Update()
+		return false
+	}
+	return false
+}
+*/

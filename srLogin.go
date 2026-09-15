@@ -200,22 +200,25 @@ func srLogin(
 	const pswdInputSelector = `#js-login-form > div:nth-child(2) > div:nth-child(2) > input`
 	const submitButtonSelector = `#js-login-form > div:nth-child(3)`
 
+	sleep(3)
 	acctInput, acctErr := page.Timeout(10 * time.Second).Element(acctInputSelector)
 	if acctErr != nil {
 		return fmt.Errorf("failed to find account input: %w", acctErr)
 	}
+	if err = acctInput.Input(acct); err != nil {
+		return fmt.Errorf("failed to input account: %w", err)
+	}
+
+	sleep(3)
 	pswdInput, pswdErr := page.Timeout(10 * time.Second).Element(pswdInputSelector)
 	if pswdErr != nil {
 		return fmt.Errorf("failed to find password input: %w", pswdErr)
-	}
-
-	if err = acctInput.Input(acct); err != nil {
-		return fmt.Errorf("failed to input account: %w", err)
 	}
 	if err = pswdInput.Input(pswd); err != nil {
 		return fmt.Errorf("failed to input password: %w", err)
 	}
 
+	sleep(1)
 	submitButton, submitErr := page.Timeout(10 * time.Second).Element(submitButtonSelector)
 	if submitErr != nil {
 		return fmt.Errorf("failed to find submit button: %w", submitErr)

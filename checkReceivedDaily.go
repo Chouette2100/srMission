@@ -43,7 +43,7 @@
 			return fmt.Errorf("failed to click the reload button: %w", err)
 		}
 		page.MustWaitIdle()
-		time.Sleep(5 * time.Second) // 進捗更新のための待機（これがないとボタンの一覧を取るところでエラーになる）
+		sleep(5) // 進捗更新のための待機（これがないとボタンの一覧を取るところでエラーになる）
 
 		// 1. 共通する親要素からボタンをすべて取得するセレクタを指定
 		// nth-child(n) を使わず、クラス名や構造で絞り込むのがコツです
@@ -56,6 +56,7 @@
 		progress := 0
 		i := 0
 		for ; i < 6; i++ {
+			sleep(1)
 			// 2. Elements() で全要素を取得
 			buttons, err := page.Timeout(10 * time.Second).Elements(selector)
 			if err != nil {

@@ -55,7 +55,22 @@ func viewRoom(
 		return fmt.Errorf("failed to wait room page load: %w", err)
 	}
 
+	// 告知があれば閉じる
+	rcc, err := page.Timeout(10 * time.Second).Element(
+		".room-campaign-close")
+	if err == nil {
+
+		if _, err = rcc.WaitInteractable(); err != nil {
+			return fmt.Errorf("room-campaign-close button not interactable: %w", err)
+		}
+
+		if err := rcc.Click(proto.InputMouseButtonLeft, 1); err != nil {
+			return fmt.Errorf("failed to click the room-campaign-close button: %w", err)
+		}
+		page.MustWaitIdle() // 描画が落ち着くのを待つ
+	}
 	// 告知のモーダルダイアログを閉じる
+	sleep(1)
 	mdb, err := page.Timeout(10 * time.Second).Element(
 		".st-gift_bulk_sending_intro__close")
 	if err == nil {
@@ -76,7 +91,8 @@ func viewRoom(
 
 	// 一番下までスクロールして、トグルボタンを見えるようにする
 	// page.MustEval(`window.scrollTo(0, document.body.scrollHeight)`)
-	page.Mouse.Scroll(0, 100000, 1)
+	sleep(1)
+	page.Mouse.Scroll(0, 100000, 20)
 	page.MustWaitIdle() // 描画が落ち着くのを待つ
 
 	// "ミッション"のダイアログのみ表示するために、トグルボタンの状態を同期する
@@ -86,11 +102,13 @@ func viewRoom(
 	}
 	// 一番上までスクロールして、"ミッション"ボタンを表示させる
 	// page.MustEval(`window.scrollTo(0, 0)`)
-	page.Mouse.Scroll(0, -100000, 1)
+	sleep(1)
+	page.Mouse.Scroll(0, -100000, 20)
 	page.MustWaitIdle()
 
 	// ギフトボックスが表示されるまで待つ
 	// el, err := page.Timeout(10 * time.Second).Element(".st-gift_box.active.gift-box")
+	sleep(1)
 	el, err := page.Element(".st-gift_box.active.gift-box, .st-fan__status")
 	if err != nil {
 		log.Printf("Error: failed to find the gift box element: %v\n", err)
@@ -115,8 +133,9 @@ func viewRoom(
 		log.Printf("Error: failed to move the dialog: %v\n", err)
 	}
 
-		// ギフトボックスが表示されるまで待つ
+	// ギフトボックスが表示されるまで待つ
 	// el, err := page.Timeout(10 * time.Second).Element(".st-gift_box.active.gift-box")
+	sleep(1)
 	cb, err := page.Element(".st-comment__box")
 	if err != nil {
 		log.Printf("Error: failed to find the comment box element: %v\n", err)
@@ -149,6 +168,7 @@ func viewRoom(
 	case "newcommer":
 
 		// 「新人ライバー応援キャンペーン」というテキストを含む li 要素を直接指定
+		sleep(1)
 		li, err := page.Timeout(10 * time.Second).ElementX(
 			"//li[contains(text(), '新人ライバー応援キャンペーン')]")
 		if err != nil {
@@ -181,6 +201,7 @@ func viewRoom(
 		receivable := 0
 		others := 0
 		for i := range len(buttons) {
+			sleep(1)
 			nbuttons, err := page.Timeout(10 * time.Second).Elements(selector)
 			if err != nil {
 				return err

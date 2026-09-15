@@ -11,6 +11,7 @@ func SyncActiveButton(page *rod.Page, targetText []string) error {
 
     nhit := 0
     for _, btn := range buttons {
+        sleep(1)
         text := btn.MustText()
         isTarget := false
         for _, t := range targetText {

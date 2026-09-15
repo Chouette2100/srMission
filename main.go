@@ -51,11 +51,12 @@ import (
 000318 2026-09-11 throwGift()でElementX()でなくElement()を使うように正す。
 000319 2026-09-11 コメントボックスを200px上に移動する(コメント入力が画面内で行うため)
 000320 2026-09-11 throwGift()で10個投げるときは、ボタン列の最後のボタンを押すようにするなど。
+000321 2026-09-14 待ち時間にゆらぎをもたせる
+000322 2026-09-15 room-campaignがあれば、room-campaign-closeボタンを閉じる処理を追加
 
------- ---------- 音声出力ありのときの「進む」バタンに対応する。
 */
 
-const Version = "000320"
+const Version = "000322"
 
 var Db *sql.DB
 var Dbmap *gorp.DbMap
@@ -63,6 +64,14 @@ var Dbmap *gorp.DbMap
 type EnvConfig struct {
 	SrAcct string `yaml:"sr_acct"`
 	SrPswd string `yaml:"sr_pswd"`
+}
+
+// テーブルviewinghistoryに対する構造体
+type ViewingHistory struct {
+	RoomID    int       `db:"room_id"`
+	Mission   string    `db:"mission"`
+	ViewedAt  time.Time `db:"viewed_at"`
+	Valid     bool      `db:"valid"` // 有効なレコードかどうかを示すフラグ
 }
 
 var envConfig EnvConfig
@@ -125,6 +134,7 @@ func main() {
 	}
 	// Dbmap.AddTableWithName(&srdblib.User{}, "user").SetKeys(true, "userid")
 	// --------------------------------
+	// Dbmap.AddTableWithName(&ViewingHistory{}, "viewinghistory").SetKeys(false, "valid", "room_id")
 
 	// userテーブルの更新判定の閾値、ApiRoomProfile()の実行頻度を設定する
 	fileenv := "Env.enc.yml"

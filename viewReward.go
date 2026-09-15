@@ -63,7 +63,7 @@ func viewReward(
 
 	adRetryCount := 0
 	for {
-		time.Sleep(3 * time.Second)
+		sleep(3)
 
 		remainCount, err := readCount(page, remainCountSelector)
 		if err != nil {
@@ -89,7 +89,7 @@ func viewReward(
 				log.Printf("collectReward failed: %v\n", err)
 			}
 			// ページ側のカウント更新を待つ。
-			time.Sleep(2 * time.Second)
+			sleep(2)
 			continue
 		}
 
@@ -104,7 +104,7 @@ func viewReward(
 				waitSec = adRewardWaitSeconds(adRetryCount)
 				log.Printf("viewReward: ad did not complete, wait %d sec before next loop, adRetryCount %d\n",
 					waitSec, adRetryCount)
-				time.Sleep(time.Duration(waitSec) * time.Second)
+				sleep(waitSec)
 				adRetryCount++
 				continue
 			}
@@ -177,6 +177,7 @@ func readCountWithFallback(page *rod.Page, selector string, fallback int) (int, 
 
 func collectReward(page *rod.Page) error {
 	// 報酬取得ボタンが表示・操作可能になるまで待つ。
+	sleep(1)
 	button, err := page.Timeout(10 * time.Second).Element(rewardButtonSelector)
 	if err != nil {
 		return fmt.Errorf("failed to find collect reward button: %w", err)
@@ -194,6 +195,7 @@ func collectReward(page *rod.Page) error {
 		return fmt.Errorf("failed to wait reward modal active: %w", err)
 	}
 
+	sleep(1)
 	okButton, err := page.Timeout(10 * time.Second).Element(okButtonSelector)
 	if err != nil {
 		return fmt.Errorf("failed to find OK button in reward modal: %w", err)
@@ -212,6 +214,7 @@ func collectReward(page *rod.Page) error {
 	}
 
 	// closeButton, err := page.Timeout(10 * time.Second).Element(closeButtonSelector)
+	sleep(1)
 	closeButton, err := page.Timeout(10 * time.Second).Element(closeButtonSelector)
 	if err != nil {
 		return fmt.Errorf("failed to find close button in reward modal: %w", err)
@@ -229,6 +232,8 @@ func collectReward(page *rod.Page) error {
 func watchAd(parentPage *rod.Page) (completed bool, err error) {
 	log.Printf("watchAd: start\n")
 
+	// 報酬取得ボタンが表示・操作可能になるまで待つ。
+	sleep(1)
 	adButton, err := parentPage.Timeout(10 * time.Second).Element(adButtonSelector)
 	if err != nil {
 		return false, fmt.Errorf("failed to find watch ad button: %w", err)
@@ -309,7 +314,7 @@ func waitAdPageOpen() (*rod.Page, error) {
 				return adPage, nil
 			}
 		}
-		time.Sleep(1 * time.Second)
+		sleep(1)
 	}
 	return nil, fmt.Errorf("ad watch tab not found")
 }
@@ -324,6 +329,7 @@ func handleAdMoveDialog(adPage *rod.Page) error {
 		return nil
 	}
 
+	sleep(1)
 	moveButton, err := adPage.Timeout(10 * time.Second).Element("#confirmation-buttons")
 	if err != nil {
 		err = fmt.Errorf("failed to find move button in ad move dialog: %w", err)
@@ -338,7 +344,7 @@ func handleAdMoveDialog(adPage *rod.Page) error {
 }
 
 func waitAdProgressComplete(adPage *rod.Page, timeout time.Duration) (bool, error) {
-	time.Sleep(2 * time.Second) // プログレスバーが表示されるまでの猶予
+	sleep(2) // プログレスバーが表示されるまでの猶予
 	noProgressWaitSec := adRewardNoProgressWaitSeconds()
 	searchDeadline := time.Now().Add(10 * time.Second)
 	overallDeadline := time.Now().Add(timeout)
@@ -359,7 +365,7 @@ func waitAdProgressComplete(adPage *rod.Page, timeout time.Duration) (bool, erro
 			return monitorProgressBar(progressEl, overallDeadline)
 		}
 
-		time.Sleep(1 * time.Second)
+		sleep(1)
 	}
 
 	// 10 秒経ってもプログレスバーが見つからない場合は「プログレスバーなし」として待機
@@ -368,7 +374,7 @@ func waitAdProgressComplete(adPage *rod.Page, timeout time.Duration) (bool, erro
 	captureDebugScreenshot(adPage, "no-progress-bar")
 	dumpPageHTML(adPage, "no-progress-bar")
 	log.Printf("waitAdProgressComplete: progress bar not found, wait %d sec and treat as completed\n", noProgressWaitSec)
-	time.Sleep(time.Duration(noProgressWaitSec) * time.Second)
+	sleep(noProgressWaitSec)
 	return true, nil
 }
 
@@ -437,7 +443,7 @@ func monitorProgressBar(progressEl *rod.Element, deadline time.Time) (bool, erro
 			}
 		}
 
-		time.Sleep(1 * time.Second)
+		sleep(1)
 	}
 
 	return false, nil
