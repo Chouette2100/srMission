@@ -5,31 +5,45 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"sync"
 	"syscall"
 	"time"
 )
 
 func installSIGTERMTracebackHandler() {
-	installSignalTracebackHandlers()
+	installSignalHandlers(true)
 }
 
 func installSignalTracebackHandlers() {
+	installSignalHandlers(true)
+}
+
+func installSignalHandlers(enableTraceback bool) {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGUSR1)
+	var shutdownOnce sync.Once
 
 	go func() {
 		for {
 			sig := <-sigCh
 			log.Printf("received signal: %s\n", sig.String())
-			dumpAllGoroutineStacks()
+			if enableTraceback || sig == syscall.SIGUSR1 {
+				dumpAllGoroutineStacks()
+			}
 
 			switch sig {
 			case syscall.SIGINT:
-				log.Printf("terminating after SIGINT traceback dump\n")
+				shutdownOnce.Do(func() {
+					closeBrowser()
+				})
+				log.Printf("terminating after SIGINT\n")
 				os.Exit(128 + 2)
 			case syscall.SIGTERM:
-				log.Printf("terminating after SIGTERM traceback dump\n")
-				// Keep SIGTERM semantics: terminate process after dumping trace.
+				shutdownOnce.Do(func() {
+					closeBrowser()
+				})
+				log.Printf("terminating after SIGTERM\n")
+				// Keep SIGTERM semantics: terminate process after graceful shutdown.
 				os.Exit(128 + 15)
 			case syscall.SIGUSR1:
 				log.Printf("continuing after SIGUSR1 traceback dump\n")

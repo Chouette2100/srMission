@@ -112,11 +112,13 @@ func checkReceivedDiscovery(page *rod.Page) (err error) {
 				}
 
 				// nilチェックと判定
-				// if classAttr != nil && strings.Contains(*classAttr, "receivable") {
 				if classAttr != nil {
 					if strings.Contains(*classAttr, "receivable") {
 						log.Printf("Button %d is receivable, clicking...\n", i)
 						receivable++
+						if err := btn.Click(proto.InputMouseButtonLeft, 1); err != nil {
+							log.Printf("Error clicking button %d: %v\n", i, err)
+						}
 						page.MustWaitIdle()
 
 					} else if strings.Contains(*classAttr, "received") {
@@ -135,7 +137,6 @@ func checkReceivedDiscovery(page *rod.Page) (err error) {
 			err = fmt.Errorf(cmsg)
 			return err
 		}
-		return nil
 	}
 	return
 }

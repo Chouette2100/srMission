@@ -54,10 +54,11 @@ import (
 000321 2026-09-14 待ち時間にゆらぎをもたせる
 000322 2026-09-15 room-campaignダイアログがあれば、room-campaign-closeボタンを押下する処理を追加
 000400 2026-09-16 SW2026に対応する、処理に汎用性をもたせる。
+000500 2026-09-16 ログイン情報を保存し、ログイン済みのブラウザを使って処理するようにする。receivableボタンを押下する処理を追加する。
 
 */
 
-const Version = "000400"
+const Version = "000500"
 
 var Db *sql.DB
 var Dbmap *gorp.DbMap
@@ -102,13 +103,14 @@ func main() {
 
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile)
 	log.Printf("Version=%s Start\n", Version)
+	tracebackEnabled := isTruthyEnv(os.Getenv("SR_TRACEBACK"))
 	// 環境変数SR_TRACEBACKを有効にすると、SIGINT,SIGTERM時にgoroutineのスタックトレースを出力するようにする
-	if isTruthyEnv(os.Getenv("SR_TRACEBACK")) {
+	if tracebackEnabled {
 		log.Printf("SR_TRACEBACK is enabled. SIGINT,SIGTERM will dump goroutine traceback.\n")
-		installSignalTracebackHandlers()
 	} else {
-		log.Printf("SR_TRACEBACK is disabled. SIGINT,SIGTERM will terminate without traceback.\n")
+		log.Printf("SR_TRACEBACK is disabled. SIGINT,SIGTERM will still trigger graceful shutdown.\n")
 	}
+	installSignalHandlers(tracebackEnabled)
 
 	// DB接続
 	var dbconfig *srdblib.DBConfig
@@ -211,7 +213,7 @@ func main() {
 				return
 			}
 		} else {
-			rooms, err = collectMyNextFave(page)
+			rooms, err = collectMyNextFave(page, noofrooms)
 			if err != nil {
 				log.Printf("Error: %v\n", err)
 				return

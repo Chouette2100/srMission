@@ -1,11 +1,15 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
@@ -15,6 +19,137 @@ import (
 
 var srBrowser *rod.Browser
 var srLauncher *launcher.Launcher
+var srCookieAccount string
+
+func sanitizeForFilename(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "default"
+	}
+
+	var b strings.Builder
+	b.Grow(len(name))
+	for _, r := range name {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '-' || r == '_' || r == '.' {
+			b.WriteRune(r)
+			continue
+		}
+		b.WriteByte('_')
+	}
+
+	sanitized := b.String()
+	if sanitized == "" {
+		return "default"
+	}
+	return sanitized
+}
+
+func browserCookieFilename(acct string) string {
+	return filepath.Join(".", sanitizeForFilename(acct)+"_browser_cookies.json")
+}
+
+func restoreBrowserCookies(acct string) error {
+	if srBrowser == nil {
+		return fmt.Errorf("browser is not initialized")
+	}
+
+	cookieFile := browserCookieFilename(acct)
+
+	if isTruthyEnv(os.Getenv("SR_CLEAN_BROWSER_COOKIES")) {
+		if removeErr := os.Remove(cookieFile); removeErr == nil {
+			log.Printf("browser cookie file removed for clean start: %s\n", cookieFile)
+		} else if !os.IsNotExist(removeErr) {
+			return fmt.Errorf("failed to remove browser cookie file %s: %w", cookieFile, removeErr)
+		}
+	}
+
+	raw, err := os.ReadFile(cookieFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Printf("browser cookie file not found: %s\n", cookieFile)
+			return nil
+		}
+		return fmt.Errorf("failed to read browser cookie file %s: %w", cookieFile, err)
+	}
+
+	var cookies []*proto.NetworkCookieParam
+	if err = json.Unmarshal(raw, &cookies); err != nil {
+		return fmt.Errorf("failed to parse browser cookie file %s: %w", cookieFile, err)
+	}
+	if len(cookies) == 0 {
+		log.Printf("browser cookie file is empty: %s\n", cookieFile)
+		return nil
+	}
+
+	if err = (proto.StorageSetCookies{Cookies: cookies}).Call(srBrowser); err != nil {
+		return fmt.Errorf("failed to restore browser cookies: %w", err)
+	}
+
+	log.Printf("browser cookies restored: account=%s, count=%d, file=%s\n", acct, len(cookies), cookieFile)
+	return nil
+}
+
+func saveBrowserCookies(acct string) error {
+	if srBrowser == nil {
+		return nil
+	}
+
+	res, err := (proto.StorageGetCookies{}).Call(srBrowser)
+	if err != nil {
+		return fmt.Errorf("failed to get browser cookies: %w", err)
+	}
+
+	cookieParams := make([]*proto.NetworkCookieParam, 0, len(res.Cookies))
+	now := time.Now()
+	for _, c := range res.Cookies {
+		if c == nil {
+			continue
+		}
+
+		if !c.Session && c.Expires > 0 {
+			expiresAt := time.Unix(0, int64(float64(c.Expires)*float64(time.Second)))
+			if expiresAt.Before(now) {
+				continue
+			}
+		}
+
+		param := &proto.NetworkCookieParam{
+			Name:         c.Name,
+			Value:        c.Value,
+			Domain:       c.Domain,
+			Path:         c.Path,
+			Secure:       c.Secure,
+			HTTPOnly:     c.HTTPOnly,
+			SameSite:     c.SameSite,
+			Priority:     c.Priority,
+			SameParty:    c.SameParty,
+			SourceScheme: c.SourceScheme,
+			PartitionKey: c.PartitionKey,
+		}
+		if !c.Session && c.Expires > 0 {
+			param.Expires = c.Expires
+		}
+		if c.SourcePort != 0 {
+			sourcePort := c.SourcePort
+			param.SourcePort = &sourcePort
+		}
+
+		cookieParams = append(cookieParams, param)
+	}
+
+	raw, err := json.Marshal(cookieParams)
+	if err != nil {
+		return fmt.Errorf("failed to encode browser cookies: %w", err)
+	}
+
+	cookieFile := browserCookieFilename(acct)
+	if err = os.WriteFile(cookieFile, raw, 0o600); err != nil {
+		return fmt.Errorf("failed to write browser cookie file %s: %w", cookieFile, err)
+	}
+
+	log.Printf("browser cookies saved: account=%s, count=%d, file=%s\n", acct, len(cookieParams), cookieFile)
+	return nil
+}
 
 func applyJapaneseLocale(page *rod.Page) error {
 	if _, err := page.SetExtraHeaders([]string{
@@ -75,6 +210,9 @@ func findBrowserBin() (string, error) {
 
 func closeBrowser() {
 	if srBrowser != nil {
+		if err := saveBrowserCookies(srCookieAccount); err != nil {
+			log.Printf("saveBrowserCookies: %v\n", err)
+		}
 		if err := srBrowser.Close(); err != nil {
 			log.Printf("closeBrowser: %v\n", err)
 		}
@@ -161,8 +299,12 @@ func srLogin(
 ) {
 
 	log.Printf("srLogin: acct=%s, pswd=***\n", acct)
+	srCookieAccount = acct
 	if err = ensureBrowser(); err != nil {
 		return err
+	}
+	if err = restoreBrowserCookies(acct); err != nil {
+		log.Printf("restoreBrowserCookies: %v\n", err)
 	}
 
 	page, err := srBrowser.Page(proto.TargetCreateTarget{URL: "about:blank"})

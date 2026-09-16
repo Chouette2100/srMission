@@ -9,7 +9,7 @@ import (
 	"github.com/go-rod/rod"
 )
 
-func collectMyNextFave(page *rod.Page) (rooms []Room, err error) {
+func collectMyNextFave(page *rod.Page, noofrooms int) (rooms []Room, err error) {
 
 	rooms = []Room{}
 
@@ -37,6 +37,11 @@ func collectMyNextFave(page *rod.Page) (rooms []Room, err error) {
 			room := Room{MainName: url, URL: url}
 			rooms = append(rooms, room)
 		}
+	}
+
+
+	if len(rooms) > noofrooms {
+		rooms = rooms[0:noofrooms]
 	}
 	return rooms, nil
 }
