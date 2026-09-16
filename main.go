@@ -52,11 +52,12 @@ import (
 000319 2026-09-11 コメントボックスを200px上に移動する(コメント入力が画面内で行うため)
 000320 2026-09-11 throwGift()で10個投げるときは、ボタン列の最後のボタンを押すようにするなど。
 000321 2026-09-14 待ち時間にゆらぎをもたせる
-000322 2026-09-15 room-campaignがあれば、room-campaign-closeボタンを閉じる処理を追加
+000322 2026-09-15 room-campaignダイアログがあれば、room-campaign-closeボタンを押下する処理を追加
+000400 2026-09-16 SW2026に対応する、処理に汎用性をもたせる。
 
 */
 
-const Version = "000322"
+const Version = "000400"
 
 var Db *sql.DB
 var Dbmap *gorp.DbMap
@@ -68,16 +69,18 @@ type EnvConfig struct {
 
 // テーブルviewinghistoryに対する構造体
 type ViewingHistory struct {
-	RoomID    int       `db:"room_id"`
-	Mission   string    `db:"mission"`
-	ViewedAt  time.Time `db:"viewed_at"`
-	Valid     bool      `db:"valid"` // 有効なレコードかどうかを示すフラグ
+	RoomID   int       `db:"room_id"`
+	Mission  string    `db:"mission"`
+	ViewedAt time.Time `db:"viewed_at"`
+	Valid    bool      `db:"valid"` // 有効なレコードかどうかを示すフラグ
 }
 
 var envConfig EnvConfig
 
 // ライブ動画配信サービスにおいて配信予定や配信状況から最適の視聴スケジュールを作成し視聴することを最終目標とする
 func main() {
+
+	var err error
 
 	// ログファイルの作成
 	logfile, err := exsrapi.CreateLogfile(Version, exsrapi.Version, srapi.Version, srdblib.Version)
@@ -184,26 +187,35 @@ func main() {
 	}
 	log.Printf("API session prepared. csrf_token acquired (length=%d)\n", len(csrfToken))
 
+	// 視聴用のページを作成し、日本語ロケールを適用する
+	page, err := srBrowser.Page(proto.TargetCreateTarget{URL: "about:blank"})
+	if err != nil {
+		log.Printf("Error: failed to create page: %v\n", err)
+		return
+	}
+	defer page.Close()
+	if err = applyJapaneseLocale(page); err != nil {
+		log.Printf("Error: failed to apply Japanese locale: %v\n", err)
+		return
+	}
+
+	var rooms []Room
 	switch mission {
-	case "daily", "newcommer":
+	case "daily", "newcommer", "discovery":
 		log.Printf("Mission: %s\n", mission)
 		// 視聴の対象となる配信者のURLのリストを取得する
-		rooms, err := collectRooms(mission, noofrooms)
-		if err != nil {
-			log.Printf("Error: %v\n", err)
-			return
-		}
-
-		// 視聴用のページを作成し、日本語ロケールを適用する
-		page, err := srBrowser.Page(proto.TargetCreateTarget{URL: "about:blank"})
-		if err != nil {
-			log.Printf("Error: failed to create page: %v\n", err)
-			return
-		}
-		defer page.Close()
-		if err = applyJapaneseLocale(page); err != nil {
-			log.Printf("Error: failed to apply Japanese locale: %v\n", err)
-			return
+		if mission != "discovery" {
+			rooms, err = collectRooms(mission, noofrooms)
+			if err != nil {
+				log.Printf("Error: %v\n", err)
+				return
+			}
+		} else {
+			rooms, err = collectMyNextFave(page)
+			if err != nil {
+				log.Printf("Error: %v\n", err)
+				return
+			}
 		}
 
 		// TODO: viewingTimeづつ視聴を行う

@@ -104,7 +104,7 @@ func viewReward(
 				waitSec = adRewardWaitSeconds(adRetryCount)
 				log.Printf("viewReward: ad did not complete, wait %d sec before next loop, adRetryCount %d\n",
 					waitSec, adRetryCount)
-				sleep(waitSec)
+				sleep(float64(waitSec))
 				adRetryCount++
 				continue
 			}
@@ -292,6 +292,7 @@ func watchAd(parentPage *rod.Page) (completed bool, err error) {
 		_ = parentPage.WaitLoad()
 		return true, nil
 	}
+	sleep(1)
 	if err = dismiss.Click(proto.InputMouseButtonLeft, 1); err != nil {
 		captureDebugScreenshot(adPage, "dismiss-click-failed")
 		log.Printf("watchAd: failed to click dismiss button, closing tab manually: %v\n", err)
@@ -374,7 +375,7 @@ func waitAdProgressComplete(adPage *rod.Page, timeout time.Duration) (bool, erro
 	captureDebugScreenshot(adPage, "no-progress-bar")
 	dumpPageHTML(adPage, "no-progress-bar")
 	log.Printf("waitAdProgressComplete: progress bar not found, wait %d sec and treat as completed\n", noProgressWaitSec)
-	sleep(noProgressWaitSec)
+	sleep(float64(noProgressWaitSec))
 	return true, nil
 }
 
@@ -439,6 +440,7 @@ func monitorProgressBar(progressEl *rod.Element, deadline time.Time) (bool, erro
 			width := widthObj.Value.String()
 			if p := parsePercent(width); p >= 100 {
 				log.Printf("waitAdProgressComplete: progress reached 100%%\n")
+				sleep(1)
 				return true, nil
 			}
 		}

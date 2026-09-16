@@ -48,7 +48,7 @@ func viewRoom(
 	// 	return err
 	// }
 
-	if err = page.Navigate(room.URL); err != nil {
+	if err = page.Navigate("https://www.showroom-live.com/r/" + room.URL); err != nil {
 		return fmt.Errorf("failed to navigate room: %w", err)
 	}
 	if err = page.WaitLoad(); err != nil {
@@ -56,6 +56,7 @@ func viewRoom(
 	}
 
 	// 告知があれば閉じる
+	sleep(0.5)
 	rcc, err := page.Timeout(10 * time.Second).Element(
 		".room-campaign-close")
 	if err == nil {
@@ -165,12 +166,17 @@ func viewRoom(
 		if err != nil {
 			return fmt.Errorf("checkReceivedDaily: %w", err)
 		}
+	case "discovery":
+		err = checkReceivedDiscovery(page)
+		if err != nil {
+			return fmt.Errorf("checkReceivedDiscovery: %w", err)
+		}
 	case "newcommer":
 
 		// 「新人ライバー応援キャンペーン」というテキストを含む li 要素を直接指定
 		sleep(1)
 		li, err := page.Timeout(10 * time.Second).ElementX(
-			"//li[contains(text(), '新人ライバー応援キャンペーン')]")
+			"//li[contains(text(), 'SW2026ミッション')]")
 		if err != nil {
 			return fmt.Errorf("failed to find the li element: %w", err)
 		}
