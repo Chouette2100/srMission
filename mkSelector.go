@@ -11,10 +11,10 @@ type OpType struct {
 	Gift        int
 }
 var opType = []OpType{
-	{AchieveText: false, Received: false, Comment: false, Gift: 0},  // SW2026-0
+	{AchieveText: false, Received: true, Comment: false, Gift: 0},  // SW2026-0
 	{AchieveText: true, Received: true, Comment: false, Gift: 0},  // SW2026-1
-	{AchieveText: false, Received: false, Comment: false, Gift: 0},  // SW2026-2
-	{AchieveText: false, Received: false, Comment: false, Gift: 0},  // SW2026-3
+	{AchieveText: false, Received: true, Comment: false, Gift: 0},  // SW2026-2
+	{AchieveText: false, Received: true, Comment: false, Gift: 0},  // SW2026-3
 	{AchieveText: true, Received: true, Comment: true, Gift: 0},  // SW2026-4
 	{AchieveText: true, Received: true, Comment: false, Gift: 10},  // SW2026-5
 	{AchieveText: true, Received: true, Comment: false, Gift: 0},  // SW2026-6

@@ -55,10 +55,11 @@ import (
 000322 2026-09-15 room-campaignダイアログがあれば、room-campaign-closeボタンを押下する処理を追加
 000400 2026-09-16 SW2026に対応する、処理に汎用性をもたせる。
 000500 2026-09-16 ログイン情報を保存し、ログイン済みのブラウザを使って処理するようにする。receivableボタンを押下する処理を追加する。
+000501 2026-09-17 ミッションの２番目のタブが選択できないなどの問題に対する検討を行う
 
 */
 
-const Version = "000500"
+const Version = "000501"
 
 var Db *sql.DB
 var Dbmap *gorp.DbMap
@@ -229,7 +230,7 @@ func main() {
 					log.Printf("viewRoom(): Mission completed\n")
 					break
 				}
-				if strings.Contains(err.Error(), "expected 2 target buttons, but found") {
+				if strings.Contains(err.Error(), " target buttons, but found") {
 					// このルームは配信していない
 					log.Printf("viewRoom(): this room is not live, skipping to next room\n")
 					continue

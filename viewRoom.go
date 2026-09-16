@@ -48,7 +48,7 @@ func viewRoom(
 	// 	return err
 	// }
 
-	if err = page.Navigate("https://www.showroom-live.com/r/" + room.URL); err != nil {
+	if err = page.Navigate(room.URL); err != nil {
 		return fmt.Errorf("failed to navigate room: %w", err)
 	}
 	if err = page.WaitLoad(); err != nil {
@@ -182,7 +182,7 @@ func viewRoom(
 		}
 
 		if _, err = li.WaitInteractable(); err != nil {
-			return fmt.Errorf("button not interactable: %w", err)
+			return fmt.Errorf("li element not interactable: %w", err)
 		}
 
 		if err := li.Click(proto.InputMouseButtonLeft, 1); err != nil {
@@ -206,7 +206,7 @@ func viewRoom(
 		received := 0
 		receivable := 0
 		others := 0
-		for i := range len(buttons) {
+		for i := 0; i < len(buttons); i++ {
 			sleep(1)
 			nbuttons, err := page.Timeout(10 * time.Second).Elements(selector)
 			if err != nil {

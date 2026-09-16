@@ -17,7 +17,8 @@ func checkReceivedDiscovery(page *rod.Page) (err error) {
 	page.MustWaitIdle()
 
 	li, err := page.Timeout(10 * time.Second).ElementX(
-		"//li[contains(text(), 'SW2026ミッション')]")
+		"//li[contains(text(), 'SW2026')]")
+	//	"//li[contains(text(), 'SW2026ミッション')]")
 	if err != nil {
 		return fmt.Errorf("failed to find the li element: %w", err)
 	}
@@ -133,7 +134,7 @@ func checkReceivedDiscovery(page *rod.Page) (err error) {
 		}
 		log.Printf("receivable: %d, received: %d, others: %d\n",
 			receivable, received, others)
-		if received == 4 {
+		if received == 7 {
 			err = fmt.Errorf(cmsg)
 			return err
 		}

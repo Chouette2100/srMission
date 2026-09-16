@@ -122,5 +122,6 @@ func throwGift(page *rod.Page, giftID string, count string) error {
 	if err := cfm.Click(proto.InputMouseButtonLeft, 1); err != nil {
 		return fmt.Errorf("failed to click confirm button for gift %s: %w", giftID, err)
 	}
+	log.Printf("throwGift: gift %s with count %s thrown successfully\n", giftID, count)
 	return nil
 }

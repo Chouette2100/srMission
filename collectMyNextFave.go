@@ -34,7 +34,7 @@ func collectMyNextFave(page *rod.Page, noofrooms int) (rooms []Room, err error) 
 			// 例: "/r/nmb48_12add_62" -> "nmb48_12add_62"
 			url := strings.TrimPrefix(*href, "/r/")
 			log.Printf("抽出したURL: %s\n", url)
-			room := Room{MainName: url, URL: url}
+			room := Room{MainName: url, URL: "https://www.showroom-live.com/r/" + url}
 			rooms = append(rooms, room)
 		}
 	}
