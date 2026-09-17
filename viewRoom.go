@@ -55,6 +55,10 @@ func viewRoom(
 		return fmt.Errorf("failed to wait room page load: %w", err)
 	}
 
+	// 視聴完了時刻を求める
+	ttime := time.Now().Add(time.Duration(viewingTime) * time.Second)
+	log.Printf("viewRoom: waiting until %s (viewingTime=%d seconds)\n", ttime.Format("15:04:05"), viewingTime)
+
 	// 告知があれば閉じる
 	sleep(0.5)
 	rcc, err := page.Timeout(10 * time.Second).Element(
@@ -87,8 +91,8 @@ func viewRoom(
 	}
 
 	// 視聴完了時刻を求める
-	ttime := time.Now().Add(time.Duration(viewingTime) * time.Second)
-	log.Printf("viewRoom: waiting until %s (viewingTime=%d seconds)\n", ttime.Format("15:04:05"), viewingTime)
+	// ttime := time.Now().Add(time.Duration(viewingTime) * time.Second)
+	// log.Printf("viewRoom: waiting until %s (viewingTime=%d seconds)\n", ttime.Format("15:04:05"), viewingTime)
 
 	// 一番下までスクロールして、トグルボタンを見えるようにする
 	// page.MustEval(`window.scrollTo(0, document.body.scrollHeight)`)
@@ -162,16 +166,23 @@ func viewRoom(
 
 	switch mission {
 	case "daily":
-		err = checkReceivedDaily(page)
+		// err = checkReceivedDaily(page)
+		err = achieveAndReceiveMission(page, "Daily")
 		if err != nil {
 			return fmt.Errorf("checkReceivedDaily: %w", err)
 		}
 	case "discovery":
-		err = checkReceivedDiscovery(page)
+		// err = checkReceivedDiscovery(page)
+		err = achieveAndReceiveMission(page, "SW2026-Sep.")
 		if err != nil {
 			return fmt.Errorf("checkReceivedDiscovery: %w", err)
 		}
 	case "newcommer":
+		err = achieveAndReceiveMission(page, "SW2026-NewCommer")
+		if err != nil {
+			return fmt.Errorf("achieveAndReceiveMission: %w", err)
+		}
+	case "newcommer-old":
 
 		// 「新人ライバー応援キャンペーン」というテキストを含む li 要素を直接指定
 		sleep(1)

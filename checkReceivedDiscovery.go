@@ -16,19 +16,20 @@ func checkReceivedDiscovery(page *rod.Page) (err error) {
 	// ミッションリストを選択する（「デイリー（昼/夜）」というテキストを含む li 要素を直接指定）
 	page.MustWaitIdle()
 
-	li, err := page.Timeout(10 * time.Second).ElementX(
-		"//li[contains(text(), 'SW2026')]")
+	// li, err := page.Timeout(10 * time.Second).ElementX(
+	// 	"//li[contains(text(), 'SW2026')]")
 	//	"//li[contains(text(), 'SW2026ミッション')]")
+	snxt, err := page.Timeout(10 * time.Second).Element("#mission-list .slider-btn.slider-next")
 	if err != nil {
-		return fmt.Errorf("failed to find the li element: %w", err)
+		return fmt.Errorf("failed to find the snext element: %w", err)
 	}
 
-	if _, err = li.WaitInteractable(); err != nil {
-		return fmt.Errorf("li element not interactable: %w", err)
+	if _, err = snxt.WaitInteractable(); err != nil {
+		return fmt.Errorf("snext element not interactable: %w", err)
 	}
 
-	if err := li.Click(proto.InputMouseButtonLeft, 1); err != nil {
-		return fmt.Errorf("failed to click the li element: %w", err)
+	if err := snxt.Click(proto.InputMouseButtonLeft, 1); err != nil {
+		return fmt.Errorf("failed to click the snext element: %w", err)
 	}
 	page.MustWaitIdle()
 
