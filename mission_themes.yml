@@ -1,0 +1,154 @@
+themes:
+  - id: Daily
+    order: 0
+    name: デイリー（昼/夜）
+    missions:
+      - id: completed
+        name: Completed
+        selector: ".missions > ol:nth-child(3) > li:nth-child(1)"
+        reward_mode: once
+      - id: views20
+        name: 20 views
+        selector: "div.content:nth-child(4) > ol:nth-child(2) > li:nth-child(1)"
+        progress_mode: received_num
+        reward_mode: incremental
+      - id: gift10
+        selector: "div.content:nth-child(4) > ol:nth-child(4) > li:nth-child(1)"
+        reward_mode: once
+        gift: 10
+      - id: comment39
+        selector: "div.content:nth-child(4) > ol:nth-child(4) > li:nth-child(2)"
+        reward_mode: once
+        comment_mode: thanks39
+      - id: keep-until-deadline
+        selector: "div.content:nth-child(4) > ol:nth-child(4) > li:nth-child(3)"
+        reward_mode: once
+        receive_policy: manual_until_hours
+        receive_hours:
+          - 2
+          - 14
+      - id: reward-only
+        selector: "div.content:nth-child(4) > ol:nth-child(4) > li:nth-child(4)"
+        reward_mode: once
+
+  - id: SW2026-Sep.
+    order: 1
+    name: SW2026ミッション
+    missions:
+      - id: progress-01
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(1)"
+        progress_mode: achieve_text
+        reward_mode: once
+      - id: progress-02
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(2)"
+        progress_mode: achieve_text
+        reward_mode: once
+      - id: comment39-01
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(3)"
+        reward_mode: once
+        comment_mode: thanks39
+      - id: gift10-01
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(4)"
+        reward_mode: once
+        gift: 10
+      - id: progress-03
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(5)"
+        progress_mode: achieve_text
+        reward_mode: once
+      - id: comment39-02
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(6)"
+        progress_mode: achieve_text
+        reward_mode: once
+        comment_mode: thanks39
+      - id: gift10-02
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(7)"
+        progress_mode: achieve_text
+        reward_mode: once
+        gift: 10
+      - id: campaign-01
+        name: Campaign
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(8)"
+      - id: campaign-02
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(9)"
+      - id: campaign-03
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(10)"
+      - id: campaign-04
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(11)"
+      - id: campaign-05
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(12)"
+      - id: campaign-06
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(13)"
+      - id: campaign-07
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(14)"
+      - id: campaign-08
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(15)"
+      - id: campaign-09
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(16)"
+      - id: campaign-period1-01
+        name: Campaign Period I
+        selector: ".missions > div:nth-child(5) > ol:nth-child(2) > li:nth-child(1)"
+      - id: campaign-period1-02
+        selector: ".missions > div:nth-child(5) > ol:nth-child(2) > li:nth-child(2)"
+      - id: campaign-period1-03
+        selector: ".missions > div:nth-child(5) > ol:nth-child(2) > li:nth-child(3)"
+      - id: campaign-period1-04
+        selector: ".missions > div:nth-child(5) > ol:nth-child(2) > li:nth-child(4)"
+      - id: campaign-period1-05
+        selector: ".missions > div:nth-child(5) > ol:nth-child(2) > li:nth-child(5)"
+      - id: campaign-period1-06
+        selector: ".missions > div:nth-child(5) > ol:nth-child(2) > li:nth-child(6)"
+      - id: campaign-period1-07
+        selector: ".missions > div:nth-child(5) > ol:nth-child(2) > li:nth-child(7)"
+      - id: campaign-period2-01
+        name: Campaign Period II
+        selector: ".missions > div:nth-child(5) > ol:nth-child(4) > li:nth-child(1)"
+      - id: campaign-period2-02
+        selector: ".missions > div:nth-child(5) > ol:nth-child(4) > li:nth-child(2)"
+      - id: campaign-period2-03
+        selector: ".missions > div:nth-child(5) > ol:nth-child(4) > li:nth-child(3)"
+      - id: campaign-period2-04
+        selector: ".missions > div:nth-child(5) > ol:nth-child(4) > li:nth-child(4)"
+      - id: campaign-period2-05
+        selector: ".missions > div:nth-child(5) > ol:nth-child(4) > li:nth-child(5)"
+      - id: campaign-period2-06
+        selector: ".missions > div:nth-child(5) > ol:nth-child(4) > li:nth-child(6)"
+      - id: campaign-period2-07
+        selector: ".missions > div:nth-child(5) > ol:nth-child(4) > li:nth-child(7)"
+
+  - id: SW2026-NewCommer
+    order: 2
+    name: SW2026 新人ライバー応援ミッション
+    missions:
+      - id: reward-01
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(1)"
+        reward_mode: once
+      - id: progress-01
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(2)"
+        progress_mode: achieve_text
+        reward_mode: once
+      - id: comment39-01
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(3)"
+        progress_mode: achieve_text
+        reward_mode: once
+        comment_mode: thanks39
+      - id: reward-02
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(4)"
+        reward_mode: once
+      - id: progress-02
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(5)"
+        progress_mode: achieve_text
+        reward_mode: once
+      - id: progress-03
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(6)"
+        progress_mode: achieve_text
+        reward_mode: once
+      - id: progress-04
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(7)"
+        progress_mode: achieve_text
+        reward_mode: once
+      - id: gift10-01
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(8)"
+        progress_mode: achieve_text
+        reward_mode: once
+        gift_type: starsAndSeeds
+        gift: 10

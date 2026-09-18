@@ -11,147 +11,100 @@ import (
 	"github.com/go-rod/rod/lib/proto"
 )
 
-type Mission struct {
-	Name        string
-	Selector    string
-	AchieveText bool
-	Received    bool
-	Comment     string
-	GiftType    string
-	Gift        int
+const (
+	progressModeNone        = "none"
+	progressModeAchieveText = "achieve_text"
+	progressModeReceivedNum = "received_num"
+
+	rewardModeNone        = "none"
+	rewardModeOnce        = "once"
+	rewardModeIncremental = "incremental"
+
+	receivePolicyImmediate        = "immediate"
+	receivePolicyManualUntilHours = "manual_until_hours"
+
+	commentModeNone     = "none"
+	commentModeThanks39 = "thanks39"
+	commentModeGreeting = "greeting"
+	commentModeText     = "text"
+)
+
+func missionProgressSelector(mission Mission) (string, error) {
+	switch mission.ProgressMode {
+	case progressModeNone:
+		return "", nil
+	case progressModeAchieveText:
+		return mission.Selector + "  .achieve-text", nil
+	case progressModeReceivedNum:
+		return mission.Selector + "  .received-num", nil
+	default:
+		return "", fmt.Errorf("unknown progress mode: %s", mission.ProgressMode)
+	}
 }
 
-type Thema struct {
-	Order    int
-	Name     string
-	Selector string
-	Missions []Mission
+func parseMissionProgress(mode string, raw string) (achieved int, total int, err error) {
+	text := strings.TrimSpace(raw)
+	if mode == progressModeReceivedNum {
+		text = strings.TrimSpace(strings.TrimPrefix(text, "受取済"))
+	}
+	parts := strings.Split(text, "/")
+	if len(parts) != 2 {
+		return 0, 0, fmt.Errorf("invalid progress text: %q", raw)
+	}
+	achieved, err = strconv.Atoi(strings.TrimSpace(parts[0]))
+	if err != nil {
+		return 0, 0, fmt.Errorf("invalid achieved progress %q: %w", parts[0], err)
+	}
+	total, err = strconv.Atoi(strings.TrimSpace(parts[1]))
+	if err != nil {
+		return 0, 0, fmt.Errorf("invalid total progress %q: %w", parts[1], err)
+	}
+	return achieved, total, nil
 }
 
-type ThemaList map[string]Thema
+func shouldCheckMissionState(mission Mission) bool {
+	return mission.ProgressMode != progressModeNone || mission.RewardMode != rewardModeNone
+}
 
-var themaList = ThemaList{
-	"Daily": Thema{
-		Order: 0,
-		Name:  "デイリー（昼/夜）",
-		Missions: []Mission{
-			{Name: "Completed",Selector: ".missions > ol:nth-child(3) > li:nth-child(1)",
-				AchieveText: false, Received: true, Comment: "nil", GiftType: "", Gift: 0},
-			{Name: "20 views", Selector: "div.content:nth-child(4) > ol:nth-child(2) > li:nth-child(1)",
-				AchieveText: true, Received: true, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: "div.content:nth-child(4) > ol:nth-child(4) > li:nth-child(1)",
-				AchieveText: false, Received: true, Comment: "nil", GiftType: "", Gift: 10},
-			{Selector: "div.content:nth-child(4) > ol:nth-child(4) > li:nth-child(2)",
-				AchieveText: false, Received: true, Comment: "39", GiftType: "", Gift: 0},
-			{Selector: "div.content:nth-child(4) > ol:nth-child(4) > li:nth-child(3)",
-				AchieveText: false, Received: true, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: "div.content:nth-child(4) > ol:nth-child(4) > li:nth-child(4)",
-				AchieveText: false, Received: true, Comment: "nil", GiftType: "", Gift: 0},
-		},
-	},
-	"SW2026-Sep.": Thema{
-		Order: 1,
-		Name:  "SW2026ミッション",
-		Missions: []Mission{
-			{Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(1)",
-				AchieveText: true, Received: true, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(2)",
-				AchieveText: true, Received: true, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(3)",
-				AchieveText: false, Received: true, Comment: "39", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(4)",
-				AchieveText: false, Received: true, Comment: "nil", GiftType: "", Gift: 10},
-			{Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(5)",
-				AchieveText: true, Received: true, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(6)",
-				AchieveText: true, Received: true, Comment: "39", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(7)",
-				AchieveText: true, Received: true, Comment: "nil", GiftType: "", Gift: 10},
-			{Name: "Campaign", Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(8)",
-				AchieveText: false, Received: false, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(9)",
-				AchieveText: false, Received: false, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(10)",
-				AchieveText: false, Received: false, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(11)",
-				AchieveText: false, Received: false, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(12)",
-				AchieveText: false, Received: false, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(13)",
-				AchieveText: false, Received: false, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(14)",
-				AchieveText: false, Received: false, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(15)",
-				AchieveText: false, Received: false, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(16)",
-				AchieveText: false, Received: false, Comment: "nil", GiftType: "", Gift: 0},
-			{Name: "Campaign Period I", Selector: ".missions > div:nth-child(5) > ol:nth-child(2) > li:nth-child(1)",
-				AchieveText: false, Received: false, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(5) > ol:nth-child(2) > li:nth-child(2)",
-				AchieveText: false, Received: false, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(5) > ol:nth-child(2) > li:nth-child(3)",
-				AchieveText: false, Received: false, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(5) > ol:nth-child(2) > li:nth-child(4)",
-				AchieveText: false, Received: false, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(5) > ol:nth-child(2) > li:nth-child(5)",
-				AchieveText: false, Received: false, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(5) > ol:nth-child(2) > li:nth-child(6)",
-				AchieveText: false, Received: false, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(5) > ol:nth-child(2) > li:nth-child(7)",
-				AchieveText: false, Received: false, Comment: "nil", GiftType: "", Gift: 0},
-			{Name: "Campaign Period II", Selector: ".missions > div:nth-child(5) > ol:nth-child(4) > li:nth-child(1)",
-				AchieveText: false, Received: false, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(5) > ol:nth-child(4) > li:nth-child(2)",
-				AchieveText: false, Received: false, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(5) > ol:nth-child(4) > li:nth-child(3)",
-				AchieveText: false, Received: false, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(5) > ol:nth-child(4) > li:nth-child(4)",
-				AchieveText: false, Received: false, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(5) > ol:nth-child(4) > li:nth-child(5)",
-				AchieveText: false, Received: false, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(5) > ol:nth-child(4) > li:nth-child(6)",
-				AchieveText: false, Received: false, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(5) > ol:nth-child(4) > li:nth-child(7)",
-				AchieveText: false, Received: false, Comment: "nil", GiftType: "", Gift: 0},
-		},
-	},
-	"SW2026-NewCommer": Thema{
-		Order: 2,
-		Name:  "SW2026 新人ライバー応援ミッション",
-		Missions: []Mission{
-			{Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(1)",
-				AchieveText: false, Received: true, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(2)",
-				AchieveText: true, Received: true, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(3)",
-				AchieveText: true, Received: true, Comment: "39", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(4)",
-				AchieveText: false, Received: true, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(5)",
-				AchieveText: true, Received: true, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(6)",
-				AchieveText: true, Received: true, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(7)",
-				AchieveText: true, Received: true, Comment: "nil", GiftType: "", Gift: 0},
-			{Selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(8)",
-				AchieveText: true, Received: true, Comment: "nil", GiftType: "starsAndSeeds", Gift: 10},
-		},
-	},
+func shouldReceiveMissionReward(mission Mission, now time.Time) bool {
+	switch mission.ReceivePolicy {
+	case receivePolicyImmediate:
+		return true
+	case receivePolicyManualUntilHours:
+		for _, hour := range mission.ReceiveHours {
+			if now.Hour() == hour {
+				return true
+			}
+		}
+		return false
+	default:
+		return false
+	}
+}
+
+func missionCommentText(mission Mission) string {
+	switch mission.CommentMode {
+	case commentModeNone:
+		return "nil"
+	case commentModeThanks39:
+		return "39"
+	case commentModeGreeting:
+		return "j"
+	case commentModeText:
+		return mission.CommentText
+	default:
+		return "nil"
+	}
 }
 
 func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 
-	theme := themaList[themaID]
+	theme, ok := themaList[themaID]
+	if !ok {
+		return fmt.Errorf("unknown theme id: %s", themaID)
+	}
 	// ミッションリストを選択する（「デイリー（昼/夜）」というテキストを含む li 要素を直接指定）
 	page.MustWaitIdle()
-
-	/*
-		// li, err := page.Timeout(10 * time.Second).ElementX(theme.Selector)
-		li, err := page.Timeout(10 * time.Second).Element(theme.Selector)
-		if err != nil {
-			return fmt.Errorf("failed to find the li element: %w", err)
-		}
-	*/
 
 	if theme.Order > 0 {
 		snext, err := page.Timeout(10 * time.Second).Element("#mission-list .slider-btn.slider-next")
@@ -200,21 +153,21 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 	for ; i < len(theme.Missions); i++ {
 		selector := theme.Missions[i].Selector
 		op := theme.Missions[i]
-		log.Printf("SW2026-%d: selector=%s, op=%+v\n", i, selector, op)
+		log.Printf("%s-%d(%s): selector=%s, op=%+v\n", theme.ID, i, op.ID, selector, op)
 		breceived := false
 		tno := 0
 		ano := 0
 		rno := 0
-		if op.AchieveText || op.Received {
+		if shouldCheckMissionState(op) {
 			// 進捗を確認する必要がある場合
 			sleep(0.5)
-			if op.AchieveText {
+			if op.ProgressMode != progressModeNone {
 				// 進捗が分割されているミッション
-				selector_txt := selector + "  .achieve-text"
-				if theme.Order == 0 && i == 1 {
-					selector_txt = selector + "  .received-num"
+				selectorTxt, err := missionProgressSelector(op)
+				if err != nil {
+					return fmt.Errorf("failed to get progress selector for %s/%s: %w", theme.ID, op.ID, err)
 				}
-				tgt, err := page.Timeout(10 * time.Second).Element(selector_txt)
+				tgt, err := page.Timeout(10 * time.Second).Element(selectorTxt)
 				if err != nil {
 					return fmt.Errorf("failed to Elements(selector) for tgt %d: %w", i, err)
 				}
@@ -225,35 +178,16 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 				if err != nil {
 					return fmt.Errorf("failed to get text for tgt %d: %w", i, err)
 				}
-				if theme.Order == 0 && i == 1 {
-					at = strings.TrimPrefix(at, "受取済")
+				ano, tno, err = parseMissionProgress(op.ProgressMode, at)
+				if err != nil {
+					return fmt.Errorf("failed to parse progress for %s/%s: %w", theme.ID, op.ID, err)
 				}
-				ata := strings.Split(at, "/")
-				ano, _ = strconv.Atoi(ata[0])
-				tno, _ = strconv.Atoi(ata[1])
 				// log.Printf("SW2026-%d: %d/%d\n", i, ano, tno)
 				if ano == tno {
 					breceived = true
 				}
-				/*
-					if op.Comment != "nil" && ano < tno {
-						sendComment(page, op.Comment)
-					} else if op.Gift > 0 && ano < tno {
-						giftlist, err := checkGiftInventory(page)
-						if err != nil {
-							log.Printf("Error checking gift inventory: %v\n", err)
-						} else {
-							if giftlist[0].Count >= op.Gift {
-								err = throwGift(page, giftlist[0].Name, fmt.Sprintf("%d", op.Gift))
-								if err != nil {
-									log.Printf("Error throwing gift: %v\n", err)
-								}
-							}
-						}
-					}
-				*/
 			}
-			if op.Received {
+			if op.RewardMode != rewardModeNone {
 				treceived++
 				// 受け取り可能なボタンをクリックする処理
 				btn, err := page.Timeout(10 * time.Second).Element(selector + " .achieve-button")
@@ -277,18 +211,18 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 				if classAttr != nil {
 					if strings.Contains(*classAttr, "receivable") {
 						log.Printf("Button %d is receivable          ...\n", i)
-						breceived = true
 						receivable++
-						hour := time.Now().Hour()
-						if theme.Order != 0 || i != 4 || hour == 2 || hour == 14 {
+						if shouldReceiveMissionReward(op, time.Now()) {
+							breceived = true
 							log.Printf("Button %d                clicking...\n", i)
 							if err := btn.Click(proto.InputMouseButtonLeft, 1); err != nil {
 								log.Printf("Error clicking button %d: %v\n", i, err)
 							}
 						} else {
+							log.Printf("Button %d receivable but kept pending by policy\n", i)
 							treceived--
 						}
-						if theme.Order == 0 && i == 1 {
+						if op.RewardMode == rewardModeIncremental {
 							el, err := page.Timeout(15 * time.Second).Element(selector + " button span")
 							if err != nil {
 								log.Printf("Error finding element for selector %s: %v\n", selector+" button span", err)
@@ -298,7 +232,7 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 									log.Printf("Error getting text for element %s: %v\n", selector+" button span", err)
 								} else {
 									rno, _ = strconv.Atoi(text)
-									log.Printf("SW2026-%d: rno=%d\n", i, rno)
+									log.Printf("%s-%d(%s): rno=%d\n", theme.ID, i, op.ID, rno)
 									ano += rno
 									if ano < tno {
 										breceived = false
@@ -318,11 +252,12 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 					}
 				}
 			}
-			log.Printf("SW2026-%d: %d(+%d)/%d\n", i, ano, rno, tno)
+			log.Printf("%s-%d(%s): %d(+%d)/%d\n", theme.ID, i, op.ID, ano, rno, tno)
 
 			if !breceived {
-				if op.Comment != "nil" {
-					sendComment(page, op.Comment)
+				comment := missionCommentText(op)
+				if comment != "nil" {
+					sendComment(page, comment)
 				}
 				if op.Gift > 0 {
 					giftlist, err := checkGiftInventory(page)
