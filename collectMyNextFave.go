@@ -9,7 +9,7 @@ import (
 	"github.com/go-rod/rod"
 )
 
-func collectMyNextFave(page *rod.Page, noofrooms int) (rooms []Room, err error) {
+func collectMyNextFave(page *rod.Page, noofrooms int, collectedAt time.Time, lastAccess time.Time, hasLastAccess bool) (rooms []Room, err error) {
 
 	rooms = []Room{}
 
@@ -33,12 +33,17 @@ func collectMyNextFave(page *rod.Page, noofrooms int) (rooms []Room, err error) 
 			// 3. 文字列操作でID部分を抽出
 			// 例: "/r/nmb48_12add_62" -> "nmb48_12add_62"
 			url := strings.TrimPrefix(*href, "/r/")
+			// url := path.Base(*href)
 			log.Printf("抽出したURL: %s\n", url)
-			room := Room{MainName: url, URL: "https://www.showroom-live.com/r/" + url}
+			if blocked, ok := isRoomURLBlacklisted(url); ok {
+				log.Printf("collectMyNextFave: skip blacklisted url=%s reason=%s\n", url, blocked.Reason)
+				continue
+			}
+			room := Room{MainName: url, URL: url}
 			rooms = append(rooms, room)
 		}
 	}
-
+	rooms = filterRoomsByAccessPolicy(rooms, "NonDaily", collectedAt, lastAccess, hasLastAccess)
 
 	if len(rooms) > noofrooms {
 		rooms = rooms[0:noofrooms]

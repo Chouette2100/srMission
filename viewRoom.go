@@ -48,7 +48,7 @@ func viewRoom(
 	// 	return err
 	// }
 
-	if err = page.Navigate(room.URL); err != nil {
+	if err = page.Navigate("https://www.showroom-live.com/r/" + room.URL); err != nil {
 		return fmt.Errorf("failed to navigate room: %w", err)
 	}
 	if err = page.WaitLoad(); err != nil {

@@ -36,8 +36,8 @@ import (
 000303 2026-09-05 リトライが続いたときの待ち時間を5回毎に大幅に増やすようにする
 000304 2026-09-06 リトライが続いたときのadRetryCountの再定義を代入に修正する
 000305 2026-09-06 mission == "newcommer"のときも、視聴ルーム数が20ルームに達したら処理を打ち切る
-000306 2026-09-06 プログレスバーを見失ったらエラーとする。リトライの待ち時間は通常値と5️⃣回に一回の最大値とする
-000307 2026-09-06 リトライの待ち時間は通常値と5️⃣回に一回の最大値とする(前回修正は誤り、逆にしていた)
+000306 2026-09-06 プログレスバーを見失ったらエラーとする。リトライの待ち時間は通常値と5️5回に一回の最大値とする
+000307 2026-09-06 リトライの待ち時間は通常値と️5回に一回の最大値とする(前回修正は誤り、逆にしていた)
 000308 2026-09-08 新人新人ライバー応援キャンペーンの報酬を受け取ることができるようにする(1)
 000309 2026-09-09 接続時に表示されるモーダルダイアログを閉じ、不要なダイアログをすべて閉じる。
 000310 2026-09-09 viewRoom()のページ生成をmain()のループ外に出し、1ページを使い回すようにする。
@@ -59,10 +59,11 @@ import (
 000502 2026-09-17 ミッション達成とその確認の汎用化を試みる
 000503 2026-09-18 密書達成の例外処理を追加する
 000504 2026-09-18 ミッション詳細をyamlから読み込む(テスト前)
+000505 2026-09-19 除外リストおよび履歴リストによるフィルタリングを行う
 
 */
 
-const Version = "000504"
+const Version = "000505"
 
 var Db *sql.DB
 var Dbmap *gorp.DbMap
@@ -74,10 +75,8 @@ type EnvConfig struct {
 
 // テーブルviewinghistoryに対する構造体
 type ViewingHistory struct {
-	RoomID   int       `db:"room_id"`
-	Mission  string    `db:"mission"`
+	URL      string    `db:"url"`
 	ViewedAt time.Time `db:"viewed_at"`
-	Valid    bool      `db:"valid"` // 有効なレコードかどうかを示すフラグ
 }
 
 var envConfig EnvConfig
@@ -154,6 +153,20 @@ func main() {
 		return
 	}
 	log.Printf("Env.yml  evnConfig.SrAcct = %s\n", envConfig.SrAcct)
+	if err = loadURLBlacklist(urlBlacklistPath); err != nil {
+		log.Printf("Error: %v\n", err)
+		return
+	}
+	accessHistory, err := loadAccessHistory(accessHistoryPath)
+	if err != nil {
+		log.Printf("Error: %v\n", err)
+		return
+	}
+	lastAccessTime, hasLastAccess, err := accessHistory.lastAccessTime()
+	if err != nil {
+		log.Printf("Error: %v\n", err)
+		return
+	}
 	// --------------------------------
 
 	/// 環境変数から設定値を取得する
@@ -209,15 +222,16 @@ func main() {
 	switch mission {
 	case "daily", "newcommer", "discovery":
 		log.Printf("Mission: %s\n", mission)
+		collectedAt := time.Now()
 		// 視聴の対象となる配信者のURLのリストを取得する
 		if mission != "discovery" {
-			rooms, err = collectRooms(mission, noofrooms)
+			rooms, err = collectRooms(mission, noofrooms, collectedAt, lastAccessTime, hasLastAccess)
 			if err != nil {
 				log.Printf("Error: %v\n", err)
 				return
 			}
 		} else {
-			rooms, err = collectMyNextFave(page, noofrooms)
+			rooms, err = collectMyNextFave(page, noofrooms, collectedAt, lastAccessTime, hasLastAccess)
 			if err != nil {
 				log.Printf("Error: %v\n", err)
 				return
@@ -227,6 +241,19 @@ func main() {
 		// TODO: viewingTimeづつ視聴を行う
 		for _, room := range rooms {
 			log.Printf("Room: %+v\n", room)
+			themeID := missionThemeID(mission)
+			now := time.Now()
+
+			accessHistory.LastAccessedAt = now.Format(time.RFC3339)
+			accessHistory.LastURL = room.URL
+			accessHistory.LastThemeID = themeID
+			if err = accessHistory.save(accessHistoryPath); err != nil {
+				log.Printf("Error: failed to save access history: %v\n", err)
+				return
+			}
+			lastAccessTime = now
+			hasLastAccess = true
+
 			// if err = viewRoom(page, apiClient, csrfToken, mission, room, viewingTime, comment); err != nil {
 			if err = viewRoom(page, mission, room, viewingTime, comment); err != nil {
 				if strings.Contains(err.Error(), cmsg) {

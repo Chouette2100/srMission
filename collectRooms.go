@@ -21,6 +21,9 @@ type Room struct {
 func collectRooms(
 	mission string,
 	noofrooms int,
+	collectedAt time.Time,
+	lastAccess time.Time,
+	hasLastAccess bool,
 ) (
 	rooms []Room,
 	err error,
@@ -50,7 +53,7 @@ func collectRooms(
 			// 758, // 注目の新人
 		}},
 		// 「きっかけ配信」はジャンルではない！
-		"discovery" : {IDs: []int{}},
+		"discovery": {IDs: []int{}},
 	}
 	genre := genreList[mission]
 	var lives []srapi.Lives2
@@ -62,10 +65,14 @@ func collectRooms(
 		// }
 		room := Room{
 			MainName:  live.MainName,
-			URL:       "https://showroom-live.com/r/" + live.RoomURLKey,
+			URL:       live.RoomURLKey,
 			RoomID:    live.RoomID,
 			LiveID:    live.LiveID,
 			Starttime: time.Unix(live.StartedAt, 0),
+		}
+		if blocked, ok := isRoomURLBlacklisted(room.URL); ok {
+			log.Printf("collectRooms: skip blacklisted url=%s reason=%s\n", room.URL, blocked.Reason)
+			continue
 		}
 		rooms = append(rooms, room)
 	}
@@ -73,6 +80,8 @@ func collectRooms(
 		log.Printf("Error: %v\n", err)
 		return nil, fmt.Errorf("failed to collectRooms(%s): %w", mission, err)
 	}
+	themeID := missionThemeID(mission)
+	rooms = filterRoomsByAccessPolicy(rooms, themeID, collectedAt, lastAccess, hasLastAccess)
 
 	sort.Slice(rooms, func(i, j int) bool {
 		return rooms[i].Starttime.After(rooms[j].Starttime)
@@ -84,6 +93,7 @@ func collectRooms(
 
 	return rooms, err
 }
+
 /*
 // すでに視聴済みのルームであるか？
 func chkDup(roomID int, mission string) bool {
