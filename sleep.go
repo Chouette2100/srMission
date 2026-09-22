@@ -5,6 +5,11 @@ import (
 	"math/rand"
 	"time"
 )
+// min〜max の範囲で一様分布の乱数を返す
+func rnd(min, max float64) float64 {
+	return min + rand.Float64()*(max-min)
+}
+
 // delay秒間スリープする
 func sleep(delay float64) {
 	// msecに変換する

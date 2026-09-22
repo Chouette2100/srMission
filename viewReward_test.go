@@ -35,8 +35,8 @@ func TestParsePercent(t *testing.T) {
 func TestAdRewardWaitSeconds(t *testing.T) {
 	tests := []struct {
 		retryCount int
-		wantMin    int
-		wantMax    int
+		wantMin    float64
+		wantMax    float64
 	}{
 		{-1, 5, 5},
 		{0, 5, 5},
@@ -46,9 +46,9 @@ func TestAdRewardWaitSeconds(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := adRewardWaitSeconds(tt.retryCount)
+		got := pMultiplier(tt.retryCount)
 		if got < tt.wantMin || got > tt.wantMax {
-			t.Errorf("adRewardWaitSeconds(%d) = %d, want between %d and %d", tt.retryCount, got, tt.wantMin, tt.wantMax)
+			t.Errorf("adRewardWaitSeconds(%d) = %7.3f, want between %7.3f and %7.3f", tt.retryCount, got, tt.wantMin, tt.wantMax)
 		}
 	}
 }

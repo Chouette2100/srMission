@@ -28,6 +28,9 @@ const (
 	closeButtonSelector = "div.active.is-result.modal-wrapper > button"
 )
 
+// 繰り返し失敗にともない待ち時間に乗ずるペナルティ
+var penaltyMultiplier = 1.0
+
 func viewReward(
 	client *http.Client,
 	csrftoken string,
@@ -63,7 +66,7 @@ func viewReward(
 
 	adRetryCount := 0
 	for {
-		sleep(3)
+		sleep(3 * penaltyMultiplier)
 
 		remainCount, err := readCount(page, remainCountSelector)
 		if err != nil {
@@ -89,7 +92,7 @@ func viewReward(
 				log.Printf("collectReward failed: %v\n", err)
 			}
 			// ページ側のカウント更新を待つ。
-			sleep(2)
+			sleep(3 * penaltyMultiplier)
 			continue
 		}
 
@@ -99,12 +102,12 @@ func viewReward(
 				log.Printf("watchAd failed: %v\n", err)
 			}
 
-			waitSec := 0
+			var waitSec float64 = 5.0
 			if !completed {
-				waitSec = adRewardWaitSeconds(adRetryCount)
-				log.Printf("viewReward: ad did not complete, wait %d sec before next loop, adRetryCount %d\n",
+				waitSec = waitSec * pMultiplier(adRetryCount)
+				log.Printf("viewReward: ad did not complete, wait %7.3f sec before next loop, adRetryCount %d\n",
 					waitSec, adRetryCount)
-				sleep(float64(waitSec))
+				sleep(waitSec * penaltyMultiplier)
 				adRetryCount++
 				continue
 			}
@@ -118,18 +121,17 @@ func viewReward(
 	return
 }
 
-func adRewardWaitSeconds(retryCount int) int {
-	const uwait = 5      // 通常の待ち時間（秒）
-	const maxwait = 1800 // 5回に一回の待ち時間（秒）
-	if retryCount < 0 {
+func pMultiplier(retryCount int) float64 {
+	const uwait = 5.0 // 通常の待ち時間（秒）
+	if retryCount == 0 || retryCount > 16 {
 		retryCount = 0
+		penaltyMultiplier = 1.0
+	} else {
+		penaltyMultiplier = (1.0 + rnd(0.1, 0.3)) * penaltyMultiplier
 	}
-	if retryCount%30 == 29 {
-		return maxwait
-	} else if retryCount%10 == 9 {
-		return 300
-	} 
-	return uwait
+
+	return penaltyMultiplier
+
 }
 
 func readCount(page *rod.Page, selector string) (int, error) {
@@ -177,7 +179,7 @@ func readCountWithFallback(page *rod.Page, selector string, fallback int) (int, 
 
 func collectReward(page *rod.Page) error {
 	// 報酬取得ボタンが表示・操作可能になるまで待つ。
-	sleep(1)
+	sleep(2 * penaltyMultiplier)
 	button, err := page.Timeout(10 * time.Second).Element(rewardButtonSelector)
 	if err != nil {
 		return fmt.Errorf("failed to find collect reward button: %w", err)
@@ -195,7 +197,7 @@ func collectReward(page *rod.Page) error {
 		return fmt.Errorf("failed to wait reward modal active: %w", err)
 	}
 
-	sleep(1)
+	sleep(2 * penaltyMultiplier)
 	okButton, err := page.Timeout(10 * time.Second).Element(okButtonSelector)
 	if err != nil {
 		return fmt.Errorf("failed to find OK button in reward modal: %w", err)
@@ -214,7 +216,7 @@ func collectReward(page *rod.Page) error {
 	}
 
 	// closeButton, err := page.Timeout(10 * time.Second).Element(closeButtonSelector)
-	sleep(1)
+	sleep(2 * penaltyMultiplier)
 	closeButton, err := page.Timeout(10 * time.Second).Element(closeButtonSelector)
 	if err != nil {
 		return fmt.Errorf("failed to find close button in reward modal: %w", err)
@@ -233,7 +235,7 @@ func watchAd(parentPage *rod.Page) (completed bool, err error) {
 	log.Printf("watchAd: start\n")
 
 	// 報酬取得ボタンが表示・操作可能になるまで待つ。
-	sleep(1)
+	sleep(2 * penaltyMultiplier)
 	adButton, err := parentPage.Timeout(10 * time.Second).Element(adButtonSelector)
 	if err != nil {
 		return false, fmt.Errorf("failed to find watch ad button: %w", err)
@@ -292,7 +294,7 @@ func watchAd(parentPage *rod.Page) (completed bool, err error) {
 		_ = parentPage.WaitLoad()
 		return true, nil
 	}
-	sleep(1)
+	sleep(2 * penaltyMultiplier)
 	if err = dismiss.Click(proto.InputMouseButtonLeft, 1); err != nil {
 		captureDebugScreenshot(adPage, "dismiss-click-failed")
 		log.Printf("watchAd: failed to click dismiss button, closing tab manually: %v\n", err)
@@ -315,7 +317,7 @@ func waitAdPageOpen() (*rod.Page, error) {
 				return adPage, nil
 			}
 		}
-		sleep(1)
+		sleep(2 * penaltyMultiplier)
 	}
 	return nil, fmt.Errorf("ad watch tab not found")
 }
@@ -330,7 +332,7 @@ func handleAdMoveDialog(adPage *rod.Page) error {
 		return nil
 	}
 
-	sleep(1)
+	sleep(2 * penaltyMultiplier)
 	moveButton, err := adPage.Timeout(10 * time.Second).Element("#confirmation-buttons")
 	if err != nil {
 		err = fmt.Errorf("failed to find move button in ad move dialog: %w", err)
@@ -345,7 +347,7 @@ func handleAdMoveDialog(adPage *rod.Page) error {
 }
 
 func waitAdProgressComplete(adPage *rod.Page, timeout time.Duration) (bool, error) {
-	sleep(2) // プログレスバーが表示されるまでの猶予
+	sleep(2 * penaltyMultiplier) // プログレスバーが表示されるまでの猶予
 	noProgressWaitSec := adRewardNoProgressWaitSeconds()
 	searchDeadline := time.Now().Add(10 * time.Second)
 	overallDeadline := time.Now().Add(timeout)
@@ -366,7 +368,7 @@ func waitAdProgressComplete(adPage *rod.Page, timeout time.Duration) (bool, erro
 			return monitorProgressBar(progressEl, overallDeadline)
 		}
 
-		sleep(1)
+		sleep(2 * penaltyMultiplier)
 	}
 
 	// 10 秒経ってもプログレスバーが見つからない場合は「プログレスバーなし」として待機
@@ -375,7 +377,7 @@ func waitAdProgressComplete(adPage *rod.Page, timeout time.Duration) (bool, erro
 	captureDebugScreenshot(adPage, "no-progress-bar")
 	dumpPageHTML(adPage, "no-progress-bar")
 	log.Printf("waitAdProgressComplete: progress bar not found, wait %d sec and treat as completed\n", noProgressWaitSec)
-	sleep(float64(noProgressWaitSec))
+	sleep(float64(noProgressWaitSec) * penaltyMultiplier)
 	return true, nil
 }
 
@@ -440,12 +442,12 @@ func monitorProgressBar(progressEl *rod.Element, deadline time.Time) (bool, erro
 			width := widthObj.Value.String()
 			if p := parsePercent(width); p >= 100 {
 				log.Printf("waitAdProgressComplete: progress reached 100%%\n")
-				sleep(1)
+				sleep(2 * penaltyMultiplier)
 				return true, nil
 			}
 		}
 
-		sleep(1)
+		sleep(2 * penaltyMultiplier)
 	}
 
 	return false, nil
