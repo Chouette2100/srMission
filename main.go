@@ -61,10 +61,14 @@ import (
 000504 2026-09-18 ミッション詳細をyamlから読み込む(テスト前)
 000505 2026-09-19 除外リストおよび履歴リストによるフィルタリングを行う
 000506 2026-09-22 viewreward()のウェイトは試行回数が斧鉞に連れて全体的に増やしていくようにする。ただし16回に一回クリアする。
+000507 2026-09-22 履歴リストの位置づけの誤りをただし、mapとする。
+000508 2026-09-22 achieveAndReceiveMission()のDailyの場合のタイミング調整を行う。
+000509 2026-09-23 DailyのミッションでView20の報酬は最後にまとめて受け取る
+000510 2026-09-23 newcommerでの文字ギフトの送付を実装する(1)
 
 */
 
-const Version = "000506"
+const Version = "000510"
 
 var Db *sql.DB
 var Dbmap *gorp.DbMap
@@ -163,11 +167,6 @@ func main() {
 		log.Printf("Error: %v\n", err)
 		return
 	}
-	lastAccessTime, hasLastAccess, err := accessHistory.lastAccessTime()
-	if err != nil {
-		log.Printf("Error: %v\n", err)
-		return
-	}
 	// --------------------------------
 
 	/// 環境変数から設定値を取得する
@@ -226,13 +225,13 @@ func main() {
 		collectedAt := time.Now()
 		// 視聴の対象となる配信者のURLのリストを取得する
 		if mission != "discovery" {
-			rooms, err = collectRooms(mission, noofrooms, collectedAt, lastAccessTime, hasLastAccess)
+			rooms, err = collectRooms(mission, noofrooms, collectedAt, accessHistory)
 			if err != nil {
 				log.Printf("Error: %v\n", err)
 				return
 			}
 		} else {
-			rooms, err = collectMyNextFave(page, noofrooms, collectedAt, lastAccessTime, hasLastAccess)
+			rooms, err = collectMyNextFave(page, noofrooms, collectedAt, accessHistory)
 			if err != nil {
 				log.Printf("Error: %v\n", err)
 				return
@@ -245,15 +244,11 @@ func main() {
 			themeID := missionThemeID(mission)
 			now := time.Now()
 
-			accessHistory.LastAccessedAt = now.Format(time.RFC3339)
-			accessHistory.LastURL = room.URL
-			accessHistory.LastThemeID = themeID
+			accessHistory.setLastAccessByURL(room.URL, themeID, now)
 			if err = accessHistory.save(accessHistoryPath); err != nil {
 				log.Printf("Error: failed to save access history: %v\n", err)
 				return
 			}
-			lastAccessTime = now
-			hasLastAccess = true
 
 			// if err = viewRoom(page, apiClient, csrfToken, mission, room, viewingTime, comment); err != nil {
 			if err = viewRoom(page, mission, room, viewingTime, comment); err != nil {

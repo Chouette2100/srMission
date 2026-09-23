@@ -22,8 +22,7 @@ func collectRooms(
 	mission string,
 	noofrooms int,
 	collectedAt time.Time,
-	lastAccess time.Time,
-	hasLastAccess bool,
+	accessHistory AccessHistory,
 ) (
 	rooms []Room,
 	err error,
@@ -81,7 +80,7 @@ func collectRooms(
 		return nil, fmt.Errorf("failed to collectRooms(%s): %w", mission, err)
 	}
 	themeID := missionThemeID(mission)
-	rooms = filterRoomsByAccessPolicy(rooms, themeID, collectedAt, lastAccess, hasLastAccess)
+	rooms = filterRoomsByAccessPolicy(rooms, themeID, collectedAt, accessHistory)
 
 	sort.Slice(rooms, func(i, j int) bool {
 		return rooms[i].Starttime.After(rooms[j].Starttime)

@@ -75,28 +75,54 @@ func checkGiftInventory(page *rod.Page) (giftlist []Gift, err error) {
 // 指定したセットのギフトを投げる
 func throwGift(page *rod.Page, giftID string, count string) error {
 
+	var err error
+
+	selector := ""
+	selectorX := ""
+
+	switch giftID {
+	case "3000669", "3000670", "3000671", "3000672", "3000673",
+		"3000841", "3000842", "3000843", "3000844", "3000845":
+		// StarsAndSeeds
+		selector = fmt.Sprintf("li.gift div[gift_id=\"%s\"] button", giftID)
+	case "3001564":
+		for i := 0; i <4; i++ {
+			findElementAndClick(page, ".st-gift_box .slider-next", 0.3, 0.0)
+		}
+		sleep(0.5)
+		selectorX = fmt.Sprintf("//div[contains(@class,'st-gift_box')]//img[contains(@src,'%s')]/..", giftID)
+	default:
+		return fmt.Errorf("invalid gift ID: %s", giftID)
+	}
+	log.Printf("throwGift: clicking gift button for gift %s\n", selector)
+
 	sleep(1)
-	err := page.WaitIdle(10 * time.Second)
+	err = page.WaitIdle(10 * time.Second)
 	if err != nil {
 		return fmt.Errorf("failed to wait for page idle: %w", err)
 	}
 
-	selector := fmt.Sprintf("li.gift div[gift_id=\"%s\"] button", giftID)
-	log.Printf("throwGift: clicking gift button for gift %s\n", selector)
-	gbtn, err := page.Timeout(20 * time.Second).Element(selector)
+	var gbtn *rod.Element
+	if selectorX != "" {
+		gbtn, err = page.Timeout(20 * time.Second).ElementX(selectorX)
+	} else {
+		gbtn, err = page.Timeout(20 * time.Second).Element(selector)
+	}
 	if err != nil {
 		return fmt.Errorf("failed to find element for gift %s: %w", giftID, err)
 	}
 	if _, err = gbtn.WaitInteractable(); err != nil {
 		return fmt.Errorf("button not interactable for gift %s: %w", giftID, err)
 	}
-	if err := gbtn.Click(proto.InputMouseButtonLeft, 1); err != nil {
+	if err = gbtn.Click(proto.InputMouseButtonLeft, 1); err != nil {
 		return fmt.Errorf("failed to click button for gift %s: %w", giftID, err)
 	}
 
 	switch count {
 	case "10":
 		selector = ".st-gift_quantity_selector__list li:last-child .st-gift_quantity_selector__button"
+	case "1":
+		selector = "li.st-gift_quantity_selector__item:nth-child(1) > button:nth-child(1)"
 	default:
 		return fmt.Errorf("invalid count: %s", count)
 	}

@@ -9,7 +9,7 @@ import (
 	"github.com/go-rod/rod"
 )
 
-func collectMyNextFave(page *rod.Page, noofrooms int, collectedAt time.Time, lastAccess time.Time, hasLastAccess bool) (rooms []Room, err error) {
+func collectMyNextFave(page *rod.Page, noofrooms int, collectedAt time.Time, accessHistory AccessHistory) (rooms []Room, err error) {
 
 	rooms = []Room{}
 
@@ -43,7 +43,7 @@ func collectMyNextFave(page *rod.Page, noofrooms int, collectedAt time.Time, las
 			rooms = append(rooms, room)
 		}
 	}
-	rooms = filterRoomsByAccessPolicy(rooms, "NonDaily", collectedAt, lastAccess, hasLastAccess)
+	rooms = filterRoomsByAccessPolicy(rooms, "NonDaily", collectedAt, accessHistory)
 
 	if len(rooms) > noofrooms {
 		rooms = rooms[0:noofrooms]

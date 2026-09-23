@@ -10,11 +10,12 @@ themes:
       - id: views20
         name: 20 views
         selector: "div.content:nth-child(4) > ol:nth-child(2) > li:nth-child(1)"
-        progress_mode: received_num
-        reward_mode: incremental
+#        progress_mode: received_num
+#        reward_mode: incremental
       - id: gift10
         selector: "div.content:nth-child(4) > ol:nth-child(4) > li:nth-child(1)"
         reward_mode: once
+        gift_type: "StarsAndSeeds"
         gift: 10
       - id: comment39
         selector: "div.content:nth-child(4) > ol:nth-child(4) > li:nth-child(2)"
@@ -50,6 +51,7 @@ themes:
       - id: gift10-01
         selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(4)"
         reward_mode: once
+        gift_type: "StarsAndSeeds"
         gift: 10
       - id: progress-03
         selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(5)"
@@ -64,6 +66,7 @@ themes:
         selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(7)"
         progress_mode: achieve_text
         reward_mode: once
+        gift_type: "StarsAndSeeds"
         gift: 10
       - id: campaign-01
         name: Campaign
@@ -131,7 +134,9 @@ themes:
         progress_mode: achieve_text
         reward_mode: once
         comment_mode: thanks39
-      - id: reward-02
+      - id: gift-word
+        gift_type: "3001564"
+        gift: 1
         selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(4)"
         reward_mode: once
       - id: progress-02

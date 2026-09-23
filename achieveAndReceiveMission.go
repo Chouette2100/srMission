@@ -99,11 +99,16 @@ func missionCommentText(mission Mission) string {
 
 func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 
+	// theme.ID == "Daily" && op.ID == "completed" の場合にtrueにする。
+	// これがtrueの場合はDailyミッションは実質終了している(報酬は受け取っていない場合もある)
+	bend := false
+
 	theme, ok := themaList[themaID]
 	if !ok {
 		return fmt.Errorf("unknown theme id: %s", themaID)
 	}
 	// ミッションリストを選択する（「デイリー（昼/夜）」というテキストを含む li 要素を直接指定）
+	// のつもりだったが、実際やってみると安定性に欠ける、スライダーボタンを使う方が現実的
 	page.MustWaitIdle()
 
 	if theme.Order > 0 {
@@ -149,11 +154,13 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 	treceived := 0
 	receivable := 0
 	others := 0
+	selector := ""
 	i := 0
 	for ; i < len(theme.Missions); i++ {
-		selector := theme.Missions[i].Selector
+		// sleep(1.0)
+		selector = theme.Missions[i].Selector
 		op := theme.Missions[i]
-		log.Printf("%s-%d(%s): selector=%s, op=%+v\n", theme.ID, i, op.ID, selector, op)
+		// log.Printf("%s-%d(%s): selector=%s, op=%+v\n", theme.ID, i, op.ID, selector, op)
 		breceived := false
 		tno := 0
 		ano := 0
@@ -188,6 +195,7 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 				}
 			}
 			if op.RewardMode != rewardModeNone {
+				// sleep(1.0)
 				treceived++
 				// 受け取り可能なボタンをクリックする処理
 				btn, err := page.Timeout(10 * time.Second).Element(selector + " .achieve-button")
@@ -210,6 +218,7 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 				// nilチェックと判定
 				if classAttr != nil {
 					if strings.Contains(*classAttr, "receivable") {
+						// 受取ボタン、ボタンを押せば報酬を受け取れる
 						log.Printf("Button %d is receivable          ...\n", i)
 						receivable++
 						if shouldReceiveMissionReward(op, time.Now()) {
@@ -218,11 +227,21 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 							if err := btn.Click(proto.InputMouseButtonLeft, 1); err != nil {
 								log.Printf("Error clicking button %d: %v\n", i, err)
 							}
+							if theme.ID == "Daily" && op.ID == "completed" {
+								// この報酬を受け取れた場合はViews20を含む全てのミッションは必ず終了している。
+								// ただしこのことは終了したミッションの報酬を受け取ったという意味ではない
+								bend = true
+								log.Printf("bend = true: Daily mission completed, all missions are considered completed\n")
+							}
+
 						} else {
 							log.Printf("Button %d receivable but kept pending by policy\n", i)
 							treceived--
 						}
 						if op.RewardMode == rewardModeIncremental {
+							// 進捗の過程で報酬を受け取れるケース
+							// DailyのView20がこれに相当するが、ここを通ると視聴ボーナスの受取に１分間かかる！
+							// sleep(1.0)
 							el, err := page.Timeout(15 * time.Second).Element(selector + " button span")
 							if err != nil {
 								log.Printf("Error finding element for selector %s: %v\n", selector+" button span", err)
@@ -257,18 +276,30 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 			if !breceived {
 				comment := missionCommentText(op)
 				if comment != "nil" {
+					// sleep(1.0)
 					sendComment(page, comment)
 				}
 				if op.Gift > 0 {
-					giftlist, err := checkGiftInventory(page)
-					if err != nil {
-						log.Printf("Error checking gift inventory: %v\n", err)
+					// sleep(1.0)
+					if op.GiftType != "StarsAndSeeds" {
+							err = throwGift(page, op.GiftType, fmt.Sprintf("%d", op.Gift))
+							if err != nil {
+								log.Printf("Error throwing gift: %v\n", err)
+							} else {
+								log.Printf("Gift %s thrown successfully for mission %d\n", 
+									op.GiftType, i)
+							}
 					} else {
-						err = throwGift(page, giftlist[0].Name, fmt.Sprintf("%d", op.Gift))
+						giftlist, err := checkGiftInventory(page)
 						if err != nil {
-							log.Printf("Error throwing gift: %v\n", err)
+							log.Printf("Error checking gift inventory: %v\n", err)
 						} else {
-							log.Printf("Gift %s thrown successfully for mission %d\n", giftlist[0].Name, i)
+							err = throwGift(page, giftlist[0].Name, fmt.Sprintf("%d", op.Gift))
+							if err != nil {
+								log.Printf("Error throwing gift: %v\n", err)
+							} else {
+								log.Printf("Gift %s thrown successfully for mission %d\n", giftlist[0].Name, i)
+							}
 						}
 					}
 				}
@@ -277,7 +308,17 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 		log.Printf("receivable: %d, received: %d, others: %d\n",
 			receivable, received, others)
 	}
-	if received == treceived {
+	if received == treceived || bend {
+		if bend {
+			// view20の報酬を受け取る
+			err = findElementAndClick(page, theme.Missions[1].Selector+" .achieve-button", 1.0, 0.5)
+			if err != nil {
+				log.Printf("Error clicking view20 achieve-button: %v\n", err)
+				// エラーが起きてもミッションは終了しているのでそのまま終了してかまわない
+			} else {
+				log.Printf("Clicked view20 achieve-button successfully\n")
+			}
+		}
 		err = fmt.Errorf(cmsg)
 		return err
 	}

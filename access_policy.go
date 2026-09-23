@@ -13,13 +13,26 @@ import (
 const accessHistoryPath = "access_history.yml"
 
 type AccessHistory struct {
+	Records map[string]AccessRecord `yaml:"records"`
+}
+
+type AccessRecord struct {
+	ViewedAt string `yaml:"viewed_at"`
+	ThemeID  string `yaml:"theme_id,omitempty"`
+}
+
+type legacyAccessHistory struct {
 	LastAccessedAt string `yaml:"last_accessed_at"`
 	LastURL        string `yaml:"last_url"`
 	LastThemeID    string `yaml:"last_theme_id"`
 }
 
+func newAccessHistory() AccessHistory {
+	return AccessHistory{Records: map[string]AccessRecord{}}
+}
+
 func loadAccessHistory(path string) (AccessHistory, error) {
-	h := AccessHistory{}
+	h := newAccessHistory()
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -33,10 +46,34 @@ func loadAccessHistory(path string) (AccessHistory, error) {
 	if err := yaml.Unmarshal(raw, &h); err != nil {
 		return h, fmt.Errorf("parse access history %s: %w", path, err)
 	}
+	h.ensureRecords()
+	if len(h.Records) == 0 {
+		legacy := legacyAccessHistory{}
+		if err := yaml.Unmarshal(raw, &legacy); err != nil {
+			return h, fmt.Errorf("parse access history legacy %s: %w", path, err)
+		}
+		if strings.TrimSpace(legacy.LastURL) != "" && strings.TrimSpace(legacy.LastAccessedAt) != "" {
+			h.Records[canonicalRoomURL(legacy.LastURL)] = AccessRecord{
+				ViewedAt: legacy.LastAccessedAt,
+				ThemeID:  legacy.LastThemeID,
+			}
+		}
+	}
+
+	canonicalized := make(map[string]AccessRecord, len(h.Records))
+	for rawURL, rec := range h.Records {
+		key := canonicalRoomURL(rawURL)
+		if key == "" || strings.TrimSpace(rec.ViewedAt) == "" {
+			continue
+		}
+		canonicalized[key] = rec
+	}
+	h.Records = canonicalized
 	return h, nil
 }
 
 func (h AccessHistory) save(path string) error {
+	h.ensureRecords()
 	raw, err := yaml.Marshal(h)
 	if err != nil {
 		return fmt.Errorf("marshal access history: %w", err)
@@ -47,15 +84,35 @@ func (h AccessHistory) save(path string) error {
 	return nil
 }
 
-func (h AccessHistory) lastAccessTime() (time.Time, bool, error) {
-	if strings.TrimSpace(h.LastAccessedAt) == "" {
+func (h *AccessHistory) ensureRecords() {
+	if h.Records == nil {
+		h.Records = map[string]AccessRecord{}
+	}
+}
+
+func (h AccessHistory) lastAccessTimeByURL(url string) (time.Time, bool, error) {
+	key := canonicalRoomURL(url)
+	rec, ok := h.Records[key]
+	if !ok || strings.TrimSpace(rec.ViewedAt) == "" {
 		return time.Time{}, false, nil
 	}
-	t, err := time.Parse(time.RFC3339, h.LastAccessedAt)
+	t, err := time.Parse(time.RFC3339, rec.ViewedAt)
 	if err != nil {
-		return time.Time{}, false, fmt.Errorf("invalid last_accessed_at %q: %w", h.LastAccessedAt, err)
+		return time.Time{}, false, fmt.Errorf("invalid viewed_at %q for url %s: %w", rec.ViewedAt, key, err)
 	}
 	return t, true, nil
+}
+
+func (h *AccessHistory) setLastAccessByURL(url string, themeID string, at time.Time) {
+	h.ensureRecords()
+	key := canonicalRoomURL(url)
+	if key == "" {
+		return
+	}
+	h.Records[key] = AccessRecord{
+		ViewedAt: at.Format(time.RFC3339),
+		ThemeID:  themeID,
+	}
 }
 
 func missionThemeID(mission string) string {
@@ -65,19 +122,27 @@ func missionThemeID(mission string) string {
 	return "NonDaily"
 }
 
-func filterRoomsByAccessPolicy(rooms []Room, themeID string, at time.Time, lastAccess time.Time, hasLast bool) []Room {
+func filterRoomsByAccessPolicy(rooms []Room, themeID string, at time.Time, history AccessHistory) []Room {
 	filtered := make([]Room, 0, len(rooms))
-	shadowLast := lastAccess
-	shadowHasLast := hasLast
+	shadowHistory := newAccessHistory()
+	for k, v := range history.Records {
+		shadowHistory.Records[k] = v
+	}
 
 	for _, room := range rooms {
-		allowed, nextAllowedAt := canAccessByThemePolicy(themeID, at, shadowLast, shadowHasLast)
+		lastAccess, hasLast, err := shadowHistory.lastAccessTimeByURL(room.URL)
+		if err != nil {
+			log.Printf("filterRoomsByAccessPolicy: invalid history for url=%s err=%v\n", room.URL, err)
+			continue
+		}
+
+		allowed, nextAllowedAt := canAccessByThemePolicy(themeID, at, lastAccess, hasLast)
 		if !allowed {
 			if !nextAllowedAt.IsZero() {
 				log.Printf("filterRoomsByAccessPolicy: skip by policy. theme=%s url=%s last=%s next=%s\n",
 					themeID,
 					room.URL,
-					shadowLast.Format("2006-01-02 15:04:05"),
+					lastAccess.Format("2006-01-02 15:04:05"),
 					nextAllowedAt.Format("2006-01-02 15:04:05"),
 				)
 			} else {
@@ -87,8 +152,7 @@ func filterRoomsByAccessPolicy(rooms []Room, themeID string, at time.Time, lastA
 		}
 
 		filtered = append(filtered, room)
-		shadowLast = at
-		shadowHasLast = true
+		shadowHistory.setLastAccessByURL(room.URL, themeID, at)
 	}
 
 	return filtered
