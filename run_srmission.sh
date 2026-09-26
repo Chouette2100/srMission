@@ -10,9 +10,9 @@ Options:
 	-h, --help   Show this help and exit
 
 Defaults (from .vscode/launch.json):
-  mission    = daily (daily|newcommer|viewreward)
-  noOfRooms  = 25
-  viewingTime= 40
+  mission    = Daily (Daily|SW2026-Sep|SW2026-NewComer|listenerupproject|viewreward)
+  noOfRooms  = 40
+  viewingTime= 35
   comment    = 39
 
 Environment defaults:
@@ -49,7 +49,7 @@ if [ "$#" -gt 4 ]; then
 	exit 1
 fi
 
-mission="${1:-daily}"
+mission="${1:-Daily}"
 no_of_rooms="${2:-25}"
 viewing_time="${3:-40}"
 comment="${4:-39}"

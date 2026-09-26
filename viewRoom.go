@@ -5,7 +5,7 @@ import (
 	"log"
 	// "net/http"
 	// "strconv"
-	"strings"
+	// "strings"
 	"time"
 
 	"github.com/go-rod/rod"
@@ -127,7 +127,7 @@ func viewRoom(
 		// position: fixed にして画面座標ベースで配置
 		elt.style.position = 'fixed';
 		elt.style.top = (rect.top - 400) + 'px';
-		elt.style.left = rect.left + 'px';
+		elt.style.left = (rect.left - 400) + 'px';
 
 		// bottom/right が設定されている場合を考慮して解除
 		elt.style.right = 'auto';
@@ -138,7 +138,7 @@ func viewRoom(
 		log.Printf("Error: failed to move the dialog: %v\n", err)
 	}
 
-	// ギフトボックスが表示されるまで待つ
+	// コメントボックスが表示されるまで待つ
 	// el, err := page.Timeout(10 * time.Second).Element(".st-gift_box.active.gift-box")
 	sleep(1)
 	cb, err := page.Element(".st-comment__box")
@@ -146,7 +146,7 @@ func viewRoom(
 		log.Printf("Error: failed to find the comment box element: %v\n", err)
 	}
 
-	// ギフトボックスの位置を変える(コメント投稿の邪魔にならないようにする)
+	// コメントボックスの位置を変える(コメント投稿の邪魔にならないようにする)
 	_, err = cb.Eval(`(cb) => {
 		const rect = this.getBoundingClientRect();
 
@@ -164,105 +164,9 @@ func viewRoom(
 		log.Printf("Error: failed to move the comment box: %v\n", err)
 	}
 
-	switch mission {
-	case "daily":
-		// err = checkReceivedDaily(page)
-		err = achieveAndReceiveMission(page, "Daily")
-		if err != nil {
-			return fmt.Errorf("checkReceivedDaily: %w", err)
-		}
-	case "discovery":
-		// err = checkReceivedDiscovery(page)
-		err = achieveAndReceiveMission(page, "SW2026-Sep.")
-		if err != nil {
-			return fmt.Errorf("checkReceivedDiscovery: %w", err)
-		}
-	case "newcommer":
-		err = achieveAndReceiveMission(page, "SW2026-NewCommer")
-		if err != nil {
-			return fmt.Errorf("achieveAndReceiveMission: %w", err)
-		}
-	case "newcommer-old":
-
-		// 「新人ライバー応援キャンペーン」というテキストを含む li 要素を直接指定
-		sleep(1)
-		li, err := page.Timeout(10 * time.Second).ElementX(
-			"//li[contains(text(), 'SW2026ミッション')]")
-		if err != nil {
-			return fmt.Errorf("failed to find the li element: %w", err)
-		}
-
-		if _, err = li.WaitInteractable(); err != nil {
-			return fmt.Errorf("li element not interactable: %w", err)
-		}
-
-		if err := li.Click(proto.InputMouseButtonLeft, 1); err != nil {
-			return fmt.Errorf("failed to click the li element: %w", err)
-		}
-		page.MustWaitIdle()
-
-		// 1. 共通する親要素からボタンをすべて取得するセレクタを指定
-		// nth-child(n) を使わず、クラス名や構造で絞り込むのがコツです
-		selector := ".missions > div:nth-child(4) > ol:nth-child(2) > li > div > div > button"
-
-		// time.Sleep(5 * time.Second) // ページが完全に読み込まれるまで待機
-
-		// 2. Elements() で全要素を取得
-		buttons, err := page.Timeout(10 * time.Second).Elements(selector)
-		if err != nil {
-			return err
-		}
-
-		// 3. ループで回す
-		received := 0
-		receivable := 0
-		others := 0
-		for i := 0; i < len(buttons); i++ {
-			sleep(1)
-			nbuttons, err := page.Timeout(10 * time.Second).Elements(selector)
-			if err != nil {
-				return err
-			}
-			btn := nbuttons[i]
-			if _, err = btn.WaitInteractable(); err != nil {
-				return fmt.Errorf("btn not interactable: %w", err)
-			}
-
-			// 各ボタンに対して状態を確認
-			classAttr, _ := btn.Attribute("class")
-
-			// nilチェックと判定
-			// if classAttr != nil && strings.Contains(*classAttr, "receivable") {
-			if classAttr != nil {
-				if strings.Contains(*classAttr, "receivable") {
-					log.Printf("Button %d is receivable, clicking...\n", i)
-					receivable++
-					// クリック処理
-					if err := btn.Click(proto.InputMouseButtonLeft, 1); err != nil {
-						log.Printf("Error clicking button %d: %v\n", i, err)
-						page.MustWaitIdle()
-						continue // エラーが出ても次へ進むなどの制御が可能
-					}
-					page.MustWaitIdle()
-				} else if strings.Contains(*classAttr, "received") {
-					log.Printf("Button %d is received\n", i)
-					received++
-				} else {
-					log.Printf("Button %d is other: %s\n", i, *classAttr)
-					others++
-				}
-
-				// クリック後に画面が更新される場合は待機を入れる
-				// page.WaitIdle(1 * time.Second)
-			}
-		}
-		log.Printf("Total buttons: %d, receivable: %d, received: %d, others: %d\n", len(buttons), receivable, received, others)
-		if received >= 10 {
-			err = fmt.Errorf(cmsg)
-			return err
-		}
-	default:
-		return fmt.Errorf("unknown mission type: %s", mission)
+	err = achieveAndReceiveMission(page, mission)
+	if err != nil {
+		return fmt.Errorf("achieveAndReceiveMission: %w", err)
 	}
 
 	// コメント投稿を行う

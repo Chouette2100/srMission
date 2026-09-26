@@ -25,6 +25,7 @@ type Mission struct {
 
 type Thema struct {
 	ID       string    `yaml:"id"`
+	Type     string    `yaml:"type"`
 	Order    int       `yaml:"order"`
 	Name     string    `yaml:"name"`
 	Missions []Mission `yaml:"missions"`

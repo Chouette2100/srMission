@@ -35,7 +35,7 @@ import (
                   mission == dailyで有効な視聴ルーム数が20ルームに達したら処理を打ち切る
 000303 2026-09-05 リトライが続いたときの待ち時間を5回毎に大幅に増やすようにする
 000304 2026-09-06 リトライが続いたときのadRetryCountの再定義を代入に修正する
-000305 2026-09-06 mission == "newcommer"のときも、視聴ルーム数が20ルームに達したら処理を打ち切る
+000305 2026-09-06 mission == "newcomer"のときも、視聴ルーム数が20ルームに達したら処理を打ち切る
 000306 2026-09-06 プログレスバーを見失ったらエラーとする。リトライの待ち時間は通常値と5️5回に一回の最大値とする
 000307 2026-09-06 リトライの待ち時間は通常値と️5回に一回の最大値とする(前回修正は誤り、逆にしていた)
 000308 2026-09-08 新人新人ライバー応援キャンペーンの報酬を受け取ることができるようにする(1)
@@ -64,11 +64,16 @@ import (
 000507 2026-09-22 履歴リストの位置づけの誤りをただし、mapとする。
 000508 2026-09-22 achieveAndReceiveMission()のDailyの場合のタイミング調整を行う。
 000509 2026-09-23 DailyのミッションでView20の報酬は最後にまとめて受け取る
-000510 2026-09-23 newcommerでの文字ギフトの送付を実装する(1)
+000510 2026-09-23 newcomerでの文字ギフトの送付を実装する。
+000600 2026-09-25 必要なくなったミッションごとの個別対応を削除する。新しいミッションが追加されたときの対応を追加する。
+000700 2026-09-26 listenerupproject(type: event)に対応する
+000701 2026-09-26 newcommerをnewcomerに正す
+000702 2026-09-26 collectRooms()でnewcommerをnewcomerに正す
+000703 2026-09-26 collectRooms()でnewcommerをnewcomerに正す(2)
 
 */
 
-const Version = "000510"
+const Version = "000703"
 
 var Db *sql.DB
 var Dbmap *gorp.DbMap
@@ -185,6 +190,18 @@ func main() {
 	log.Printf(" mission =[%s], viewingTime=%d, comment=%s\n", mission, viewingTime, comment)
 	// --------------------------------
 
+	tp := ""
+	if mission == "viewreward" {
+		tp = "viewreward"
+	} else {
+		if t, ok := themaList[mission]; !ok {
+			log.Printf("Unknown mission: %s\n", mission)
+			return
+		} else {
+			tp = t.Type
+		}
+	}
+
 	// login操作を行う
 	defer closeBrowser()
 	if err = srLogin(envConfig.SrAcct, envConfig.SrPswd); err != nil {
@@ -218,60 +235,64 @@ func main() {
 		return
 	}
 
+	log.Printf("Mission: %s\n", mission)
 	var rooms []Room
-	switch mission {
-	case "daily", "newcommer", "discovery":
-		log.Printf("Mission: %s\n", mission)
-		collectedAt := time.Now()
-		// 視聴の対象となる配信者のURLのリストを取得する
-		if mission != "discovery" {
-			rooms, err = collectRooms(mission, noofrooms, collectedAt, accessHistory)
-			if err != nil {
-				log.Printf("Error: %v\n", err)
-				return
-			}
-		} else {
-			rooms, err = collectMyNextFave(page, noofrooms, collectedAt, accessHistory)
-			if err != nil {
-				log.Printf("Error: %v\n", err)
-				return
-			}
-		}
-
-		// TODO: viewingTimeづつ視聴を行う
-		for _, room := range rooms {
-			log.Printf("Room: %+v\n", room)
-			themeID := missionThemeID(mission)
-			now := time.Now()
-
-			accessHistory.setLastAccessByURL(room.URL, themeID, now)
-			if err = accessHistory.save(accessHistoryPath); err != nil {
-				log.Printf("Error: failed to save access history: %v\n", err)
-				return
-			}
-
-			// if err = viewRoom(page, apiClient, csrfToken, mission, room, viewingTime, comment); err != nil {
-			if err = viewRoom(page, mission, room, viewingTime, comment); err != nil {
-				if strings.Contains(err.Error(), cmsg) {
-					log.Printf("viewRoom(): Mission completed\n")
-					break
-				}
-				if strings.Contains(err.Error(), " target buttons, but found") {
-					// このルームは配信していない
-					log.Printf("viewRoom(): this room is not live, skipping to next room\n")
-					continue
-				}
-				log.Printf("Error: %v\n", err)
-			}
-		}
+	collectedAt := time.Now()
+	switch tp {
 	case "viewreward":
-		log.Printf("Mission: viewreward\n")
 		if err = viewReward(apiClient, csrfToken); err != nil {
 			log.Printf("Error: %v\n", err)
+		}
+	case "daily", "newcomer":
+		rooms, err = collectRooms(tp, noofrooms, collectedAt, accessHistory)
+		if err != nil {
+			log.Printf("Error: %v\n", err)
+			return
+		}
+	case "discovery":
+		// 視聴の対象となる配信者のURLのリストを取得する
+		rooms, err = collectMyNextFave(page, noofrooms, collectedAt, accessHistory)
+		if err != nil {
+			log.Printf("Error: %v\n", err)
+			return
+		}
+	case "event":
+		// イベント参加者が対象となるので、イベント参加者のURLのリストを取得する
+		rooms, err = collectEventRooms(themaList[mission].ID, noofrooms, collectedAt, accessHistory)
+		if err != nil {
+			log.Printf("Error: %v\n", err)
+			return
 		}
 	default:
 		log.Printf("Unknown mission: %s\n", mission)
 		return
+	}
+
+	// TODO: viewingTimeづつ視聴を行う
+	for _, room := range rooms {
+		log.Printf("Room: %+v\n", room)
+		themeID := missionThemeID(mission)
+		now := time.Now()
+
+		accessHistory.setLastAccessByURL(room.URL, themeID, now)
+		if err = accessHistory.save(accessHistoryPath); err != nil {
+			log.Printf("Error: failed to save access history: %v\n", err)
+			return
+		}
+
+		// if err = viewRoom(page, apiClient, csrfToken, mission, room, viewingTime, comment); err != nil {
+		if err = viewRoom(page, mission, room, viewingTime, comment); err != nil {
+			if strings.Contains(err.Error(), cmsg) {
+				log.Printf("viewRoom(): Mission completed\n")
+				break
+			}
+			if strings.Contains(err.Error(), " target buttons, but found") {
+				// このルームは配信していない
+				log.Printf("viewRoom(): this room is not live, skipping to next room\n")
+				continue
+			}
+			log.Printf("Error: %v\n", err)
+		}
 	}
 
 	// --------------------------------

@@ -85,7 +85,8 @@ func throwGift(page *rod.Page, giftID string, count string) error {
 		"3000841", "3000842", "3000843", "3000844", "3000845":
 		// StarsAndSeeds
 		selector = fmt.Sprintf("li.gift div[gift_id=\"%s\"] button", giftID)
-	case "3001564":
+	case "3001564","3001567":
+		// 文字ギフト
 		for i := 0; i <4; i++ {
 			findElementAndClick(page, ".st-gift_box .slider-next", 0.3, 0.0)
 		}

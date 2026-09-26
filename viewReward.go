@@ -107,7 +107,7 @@ func viewReward(
 				waitSec = waitSec * pMultiplier(adRetryCount)
 				log.Printf("viewReward: ad did not complete, wait %7.3f sec before next loop, adRetryCount %d\n",
 					waitSec, adRetryCount)
-				sleep(waitSec * penaltyMultiplier)
+				sleep(waitSec)
 				adRetryCount++
 				continue
 			}

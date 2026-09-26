@@ -107,30 +107,8 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 	if !ok {
 		return fmt.Errorf("unknown theme id: %s", themaID)
 	}
-	// ミッションリストを選択する（「デイリー（昼/夜）」というテキストを含む li 要素を直接指定）
-	// のつもりだったが、実際やってみると安定性に欠ける、スライダーボタンを使う方が現実的
-	page.MustWaitIdle()
-
-	if theme.Order > 0 {
-		snext, err := page.Timeout(10 * time.Second).Element("#mission-list .slider-btn.slider-next")
-		if err != nil {
-			return fmt.Errorf("failed to find the li element: %w", err)
-		}
-
-		if _, err = snext.WaitInteractable(); err != nil {
-			return fmt.Errorf("snext element not interactable: %w", err)
-		}
-
-		for i := 0; i < theme.Order; i++ {
-			if err := snext.Click(proto.InputMouseButtonLeft, 1); err != nil {
-				return fmt.Errorf("failed to click the snext element: %w", err)
-			}
-			if i < theme.Order-1 {
-				sleep(0.4)
-			}
-		}
-	}
-
+	// page.MustWaitIdle()
+	selectMission(page, theme.Name)
 	page.MustWaitIdle()
 
 	// 進捗を更新する
@@ -176,7 +154,7 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 				}
 				tgt, err := page.Timeout(10 * time.Second).Element(selectorTxt)
 				if err != nil {
-					return fmt.Errorf("failed to Elements(selector) for tgt %d: %w", i, err)
+					return fmt.Errorf("failed to Elements(selector) for tgt %d[%s]: %w", i, selectorTxt, err)
 				}
 				if _, err = tgt.WaitInteractable(); err != nil {
 					return fmt.Errorf("button not interactable: %w", err)

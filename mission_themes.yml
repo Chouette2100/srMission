@@ -1,5 +1,6 @@
 themes:
   - id: Daily
+    type: daily
     order: 0
     name: デイリー（昼/夜）
     missions:
@@ -32,7 +33,8 @@ themes:
         selector: "div.content:nth-child(4) > ol:nth-child(4) > li:nth-child(4)"
         reward_mode: once
 
-  - id: SW2026-Sep.
+  - id: SW2026-Sep
+    type: discovery
     order: 1
     name: SW2026ミッション
     missions:
@@ -118,7 +120,8 @@ themes:
       - id: campaign-period2-07
         selector: ".missions > div:nth-child(5) > ol:nth-child(4) > li:nth-child(7)"
 
-  - id: SW2026-NewCommer
+  - id: SW2026-NewComer
+    type: newcomer
     order: 2
     name: SW2026 新人ライバー応援ミッション
     missions:
@@ -157,3 +160,29 @@ themes:
         reward_mode: once
         gift_type: starsAndSeeds
         gift: 10
+
+  - id: listenerupproject
+    type: event
+    order: 3
+    name: レインボースター
+    missions:
+      - id: completed
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(1)"
+        reward_mode: once
+      - id: gift-word
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(2)"
+        gift_type: "3001567"
+        gift: 1
+        reward_mode: once
+      - id: follow-01
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(3)"
+        reward_mode: once
+      - id: comment39-01
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(4)"
+        progress_mode: achieve_text
+        reward_mode: once
+        comment_mode: thanks39
+      - id: viewing
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(5)"
+        progress_mode: achieve_text
+        reward_mode: once

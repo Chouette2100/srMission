@@ -19,7 +19,7 @@ type Room struct {
 }
 
 func collectRooms(
-	mission string,
+	missionTp string,
 	noofrooms int,
 	collectedAt time.Time,
 	accessHistory AccessHistory,
@@ -45,7 +45,7 @@ func collectRooms(
 			// 704, // メンズ
 			// 703, // カラオケ
 		}},
-		"newcommer": {IDs: []int{
+		"newcomer": {IDs: []int{
 			762, // New1day
 			763, // New7day
 			764, // New30day
@@ -54,7 +54,7 @@ func collectRooms(
 		// 「きっかけ配信」はジャンルではない！
 		"discovery": {IDs: []int{}},
 	}
-	genre := genreList[mission]
+	genre := genreList[missionTp]
 	var lives []srapi.Lives2
 	lives, err = srapi.GetLiveOnlives3(http.DefaultClient, genre.IDs)
 
@@ -77,9 +77,9 @@ func collectRooms(
 	}
 	if err != nil {
 		log.Printf("Error: %v\n", err)
-		return nil, fmt.Errorf("failed to collectRooms(%s): %w", mission, err)
+		return nil, fmt.Errorf("failed to collectRooms(%s): %w", missionTp, err)
 	}
-	themeID := missionThemeID(mission)
+	themeID := missionThemeID(missionTp)
 	rooms = filterRoomsByAccessPolicy(rooms, themeID, collectedAt, accessHistory)
 
 	sort.Slice(rooms, func(i, j int) bool {
