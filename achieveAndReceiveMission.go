@@ -133,6 +133,8 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 	receivable := 0
 	others := 0
 	selector := ""
+	var sb strings.Builder
+	sb.Grow(len(theme.Missions))
 	i := 0
 	for ; i < len(theme.Missions); i++ {
 		// sleep(1.0)
@@ -143,12 +145,25 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 		tno := 0
 		ano := 0
 		rno := 0
-		if shouldCheckMissionState(op) {
+		bviews20 := false
+		if theme.ID == "Daily" && op.ID == "views20" {
+			bviews20 = true
+			rno, err = getViews20MissionProgress(page, selector)
+			if err != nil {
+				log.Printf("Error getting views20 mission progress: %v\n", err)
+			}
+		}
+		if shouldCheckMissionState(op) || bviews20 {
 			// 進捗を確認する必要がある場合
 			sleep(0.5)
-			if op.ProgressMode != progressModeNone {
+			if op.ProgressMode != progressModeNone || bviews20 {
 				// 進捗が分割されているミッション
 				selectorTxt, err := missionProgressSelector(op)
+				if bviews20 {
+					// selectorTxt = selector + " .mission-detail p" // こっちは"配信を視聴しよう（12/20）"の方
+					selectorTxt = selector + " .received-num"
+					err = nil
+				}
 				if err != nil {
 					return fmt.Errorf("failed to get progress selector for %s/%s: %w", theme.ID, op.ID, err)
 				}
@@ -163,14 +178,23 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 				if err != nil {
 					return fmt.Errorf("failed to get text for tgt %d: %w", i, err)
 				}
+				if bviews20 {
+					// ata := strings.Split(at, "（")
+					// if len(ata) > 1 {
+					// 	at = strings.TrimSpace(strings.TrimSuffix(ata[1], "）"))
+					// }
+					at = strings.TrimSpace(strings.TrimPrefix(at, "受取済"))
+				}
 				ano, tno, err = parseMissionProgress(op.ProgressMode, at)
 				if err != nil {
 					return fmt.Errorf("failed to parse progress for %s/%s: %w", theme.ID, op.ID, err)
 				}
 				// log.Printf("SW2026-%d: %d/%d\n", i, ano, tno)
-				if ano == tno {
+				if ano == tno && !bviews20 {
 					breceived = true
 				}
+				// log.Printf("%s-%d(%s): %d(+%d)/%d\n", theme.ID, i, op.ID, ano, rno, tno)
+				sb.WriteString(fmt.Sprintf("[%02d|%02d]", ano, rno))
 			}
 			if op.RewardMode != rewardModeNone {
 				// sleep(1.0)
@@ -196,12 +220,13 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 				// nilチェックと判定
 				if classAttr != nil {
 					if strings.Contains(*classAttr, "receivable") {
+						sb.WriteString("r")
 						// 受取ボタン、ボタンを押せば報酬を受け取れる
-						log.Printf("Button %d is receivable          ...\n", i)
+						// log.Printf("Button %d is receivable          ...\n", i)
 						receivable++
 						if shouldReceiveMissionReward(op, time.Now()) {
 							breceived = true
-							log.Printf("Button %d                clicking...\n", i)
+							// log.Printf("Button %d                clicking...\n", i)
 							if err := btn.Click(proto.InputMouseButtonLeft, 1); err != nil {
 								log.Printf("Error clicking button %d: %v\n", i, err)
 							}
@@ -213,12 +238,12 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 							}
 
 						} else {
-							log.Printf("Button %d receivable but kept pending by policy\n", i)
+							// log.Printf("Button %d receivable but kept pending by policy\n", i)
 							treceived--
 						}
-						if op.RewardMode == rewardModeIncremental {
+						if op.RewardMode == rewardModeIncremental || bviews20 {
 							// 進捗の過程で報酬を受け取れるケース
-							// DailyのView20がこれに相当するが、ここを通ると視聴ボーナスの受取に１分間かかる！
+							// Dailyのviews20がこれに相当するが、ここを通ると視聴ボーナスの受取に１分間かかる！
 							// sleep(1.0)
 							el, err := page.Timeout(15 * time.Second).Element(selector + " button span")
 							if err != nil {
@@ -240,16 +265,17 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 						page.MustWaitIdle()
 
 					} else if strings.Contains(*classAttr, "received") {
+						sb.WriteString("R")
 						breceived = true
-						log.Printf("Button %d is received\n", i)
+						// log.Printf("Button %d is received\n", i)
 						received++
 					} else {
-						log.Printf("Button %d is other: %s\n", i, *classAttr)
+						sb.WriteString("c")
+						// log.Printf("Button %d is other: %s\n", i, *classAttr)
 						others++
 					}
 				}
 			}
-			log.Printf("%s-%d(%s): %d(+%d)/%d\n", theme.ID, i, op.ID, ano, rno, tno)
 
 			if !breceived {
 				comment := missionCommentText(op)
@@ -260,13 +286,13 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 				if op.Gift > 0 {
 					// sleep(1.0)
 					if op.GiftType != "StarsAndSeeds" {
-							err = throwGift(page, op.GiftType, fmt.Sprintf("%d", op.Gift))
-							if err != nil {
-								log.Printf("Error throwing gift: %v\n", err)
-							} else {
-								log.Printf("Gift %s thrown successfully for mission %d\n", 
-									op.GiftType, i)
-							}
+						err = throwGift(page, op.GiftType, fmt.Sprintf("%d", op.Gift))
+						if err != nil {
+							log.Printf("Error throwing gift: %v\n", err)
+						} else {
+							log.Printf("Gift %s thrown successfully for mission %d\n",
+								op.GiftType, i)
+						}
 					} else {
 						giftlist, err := checkGiftInventory(page)
 						if err != nil {
@@ -283,9 +309,11 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 				}
 			}
 		}
-		log.Printf("receivable: %d, received: %d, others: %d\n",
-			receivable, received, others)
+		// log.Printf("receivable: %d, received: %d, others: %d\n",
+		// 	receivable, received, others)
 	}
+	log.Printf("status: %s", sb.String())
+
 	if received == treceived || bend {
 		if bend {
 			// view20の報酬を受け取る

@@ -69,11 +69,14 @@ import (
 000700 2026-09-26 listenerupproject(type: event)に対応する
 000701 2026-09-26 newcommerをnewcomerに正す
 000702 2026-09-26 collectRooms()でnewcommerをnewcomerに正す
-000703 2026-09-26 collectRooms()でnewcommerをnewcomerに正す(2)
+000703 2026-09-27 collectRooms()でnewcommerをnewcomerに正す(2)
+000704 2026-09-27 views20の例外処理を追加する（views20の処理で自動化対策が発動した模様）
+000705 2026-09-27 log出力を可能な範囲で拡張しないようにする。
+000706 2026-09-28 ログ出力を整理する
 
 */
 
-const Version = "000703"
+const Version = "000706"
 
 var Db *sql.DB
 var Dbmap *gorp.DbMap
@@ -270,7 +273,10 @@ func main() {
 
 	// TODO: viewingTimeづつ視聴を行う
 	for _, room := range rooms {
-		log.Printf("Room: %+v\n", room)
+		// log.Printf("Room: %+v\n", room)
+		log.Printf("\n                           [%s]\n", room.MainName)
+		log.Printf("%s, %d, %d, %s\n",
+			room.URL, room.RoomID, room.LiveID, room.Starttime.Format("02 15:04:05"))
 		themeID := missionThemeID(mission)
 		now := time.Now()
 
