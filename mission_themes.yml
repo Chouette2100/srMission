@@ -186,3 +186,72 @@ themes:
         selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(5)"
         progress_mode: achieve_text
         reward_mode: once
+
+  - id: newliver2610
+    type: newcomer
+    order: 4
+    name: SW2026 新人ライバー応援キャンペーン
+    missions:
+      - id: view-01-day
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(1)"
+        reward_mode: once
+      - id: view-03-day
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(2)"
+        progress_mode: achieve_text
+        reward_mode: once
+      - id: comment-03-day
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(3)"
+        progress_mode: achieve_text
+        reward_mode: once
+        comment_mode: thanks39
+      - id: comment-05-day
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(4)"
+        progress_mode: achieve_text
+        reward_mode: once
+        comment_mode: thanks39
+      - id: giftWord-02-day
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(5)"
+        reward_mode: none
+        gift_type: "3001564"
+        gift: 1
+      - id: view-10
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(6)"
+        progress_mode: achieve_text
+        reward_mode: once
+      - id: view-20
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(7)"
+        progress_mode: achieve_text
+        reward_mode: once
+      - id: view-30
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(8)"
+        progress_mode: achieve_text
+        reward_mode: once
+      - id: commnet-05
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(9)"
+        progress_mode: achieve_text
+        reward_mode: once
+      - id: comment-10
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(10)"
+        progress_mode: achieve_text
+        reward_mode: once
+        comment_mode: thanks39
+      - id: comment-20
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(11)"
+        progress_mode: achieve_text
+        reward_mode: once
+        comment_mode: thanks39
+      - id: giftWord-15
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(12)"
+        reward_mode: none
+        gift_type: "3001564"
+        gift: 1
+      - id: giftWord-30
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(13)"
+        reward_mode: none
+        gift_type: "3001564"
+        gift: 1
+      - id: giftWord-50
+        selector: ".missions > div:nth-child(4) > ol:nth-child(2) > li:nth-child(14)"
+        reward_mode: none
+        gift_type: "3001564"
+        gift: 1

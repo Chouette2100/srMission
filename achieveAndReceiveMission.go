@@ -133,6 +133,8 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 	receivable := 0
 	others := 0
 	selector := ""
+	bcomment := false
+	bgift := false
 	var sb strings.Builder
 	sb.Grow(len(theme.Missions))
 	i := 0
@@ -194,7 +196,11 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 					breceived = true
 				}
 				// log.Printf("%s-%d(%s): %d(+%d)/%d\n", theme.ID, i, op.ID, ano, rno, tno)
-				sb.WriteString(fmt.Sprintf("[%02d|%02d]", ano, rno))
+				if bviews20 {
+					sb.WriteString(fmt.Sprintf("[%02d|%02d]", ano, tno))
+				} else {
+					sb.WriteString(fmt.Sprintf("[%02d]", ano))
+				}
 			}
 			if op.RewardMode != rewardModeNone {
 				// sleep(1.0)
@@ -279,11 +285,12 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 
 			if !breceived {
 				comment := missionCommentText(op)
-				if comment != "nil" {
+				if comment != "nil" && !bcomment {
 					// sleep(1.0)
 					sendComment(page, comment)
+					bcomment = true
 				}
-				if op.Gift > 0 {
+				if op.Gift > 0 && !bgift {
 					// sleep(1.0)
 					if op.GiftType != "StarsAndSeeds" {
 						err = throwGift(page, op.GiftType, fmt.Sprintf("%d", op.Gift))
@@ -306,6 +313,7 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 							}
 						}
 					}
+					bgift = true
 				}
 			}
 		}
@@ -314,19 +322,21 @@ func achieveAndReceiveMission(page *rod.Page, themaID string) (err error) {
 	}
 	log.Printf("status: %s", sb.String())
 
-	if received == treceived || bend {
-		if bend {
-			// view20の報酬を受け取る
-			err = findElementAndClick(page, theme.Missions[1].Selector+" .achieve-button", 1.0, 0.5)
-			if err != nil {
-				log.Printf("Error clicking view20 achieve-button: %v\n", err)
-				// エラーが起きてもミッションは終了しているのでそのまま終了してかまわない
-			} else {
-				log.Printf("Clicked view20 achieve-button successfully\n")
-			}
-		}
-		err = fmt.Errorf(cmsg)
-		return err
+	if received != treceived && !bend {
+		// ミッションが完了していないので次のルームに進む
+		return nil
 	}
-	return
+	if bend {
+		// view20であれば報酬を受け取る
+		err = findElementAndClick(page, theme.Missions[1].Selector+" .achieve-button", 1.0, 0.5)
+		if err != nil {
+			log.Printf("Error clicking view20 achieve-button: %v\n", err)
+			return err
+		} else {
+			log.Printf("Clicked view20 achieve-button successfully\n")
+		}
+	}
+	// ミッションが完了したことをエラーメッセージで伝達する
+	err = fmt.Errorf(cmsg)
+	return err
 }
